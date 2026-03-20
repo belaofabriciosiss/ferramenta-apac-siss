@@ -14,7 +14,7 @@
 
 .header {
   width: 100%;
-  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #008E7B 0%, #006053 100%);
   color: #fff;
   padding: 2rem 1rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -91,8 +91,8 @@
 }
 
 .sectionNumber {
-  background: #eff6ff;
-  color: #2563eb;
+  background: #e0f6f4;
+  color: #008E7B;
   font-weight: 700;
   border-radius: 50%;
   width: 32px;
@@ -369,7 +369,7 @@
 }
 
 .btnGerar {
-  background: #2563eb;
+  background: #008E7B;
   color: white;
   border: none;
   border-radius: 8px;
@@ -385,7 +385,7 @@
 }
 
 .btnGerar:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: #007364;
   transform: translateY(-1px);
 }
 

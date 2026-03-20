@@ -249,8 +249,7 @@ export default function App() {
             />
           </div>
           <div className={styles.headerText}>
-            <p className={styles.headerSupra}>Sistema de Informações Ambulatoriais · SIA/DATASUS</p>
-            <h1 className={styles.headerTitle}>Exportação Arquivo APAC</h1>
+            <h1 className={styles.headerTitle}>Ferramenta para Geração do Arquivo APAC</h1>
             <p className={styles.headerSub}>
               Ferramenta para geração do arquivo APAC com dados extraídos do sistema SISS.
             </p>
