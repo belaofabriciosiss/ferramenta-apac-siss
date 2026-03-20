@@ -329,6 +329,7 @@
   border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .helpIcon {
