@@ -459,7 +459,7 @@ export default function App() {
       </main>
 
       <footer className={styles.footer}>
-        <p>Exportação Arquivo APAC · Uso interno · SIA/DATASUS</p>
+        <p>Desenvolvido por Fabrício Belão da Costa (SISS Online).</p>
       </footer>
     </div>
   )
