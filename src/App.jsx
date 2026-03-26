@@ -90,6 +90,7 @@ export default function App() {
   const [planilha, setPlanilha] = useState(null) // { nome, dados, qtdLinhas }
   const [profissional, setProfissional] = useState('')
   const [cnsAutorizador, setCnsAutorizador] = useState('')
+  const [cboProfissional, setCboProfissional] = useState('')
   const [apacDe, setApacDe] = useState('')
   const [apacAte, setApacAte] = useState('')
 
@@ -142,6 +143,12 @@ export default function App() {
       novosErros.cns = 'Informe o CNS do autorizador.'
     } else if (!validarCNS(cnsAutorizador)) {
       novosErros.cns = 'O CNS deve conter exatamente 15 dígitos numéricos.'
+    }
+
+    if (!cboProfissional.trim()) {
+      novosErros.cbo = 'Informe o CBO do profissional autorizador.'
+    } else if (!/^\d{6}$/.test(cboProfissional)) {
+      novosErros.cbo = 'O CBO deve conter exatamente 6 dígitos numéricos.'
     }
 
     const parseDe = apacDe.trim() ? parsearAPAC(apacDe.trim()) : null
@@ -200,6 +207,7 @@ export default function App() {
           'NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)': numeroAPAC,
           'NOME PROFISSIONAL AUTORIZADOR': profissional.trim(),
           'CNS DO AUTORIZADOR': cnsAutorizador.replace(/\s/g, ''),
+          'CBO DO PROFISSIONAL AUTORIZADOR': cboProfissional,
         }
       })
 
@@ -357,6 +365,27 @@ export default function App() {
                     const val = e.target.value.replace(/\D/g, '').slice(0, 15)
                     setCnsAutorizador(val)
                     setErros(prev => ({ ...prev, cns: null }))
+                  }}
+                />
+              </InputField>
+
+              <InputField
+                label="CBO do profissional"
+                sublabel="(6 dígitos)"
+                id="cbo"
+                error={erros.cbo}
+              >
+                <input
+                  id="cbo"
+                  type="text"
+                  className={`${styles.input} ${styles.inputMono} ${erros.cbo ? styles.inputError : ''}`}
+                  placeholder="000000"
+                  maxLength={6}
+                  value={cboProfissional}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                    setCboProfissional(val)
+                    setErros(prev => ({ ...prev, cbo: null }))
                   }}
                 />
               </InputField>
