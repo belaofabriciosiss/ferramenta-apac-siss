@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { parsearAPAC } from '../utils/apacUtils'
+import { parsearAPAC, calcularDV, formatarAPAC } from '../utils/apacUtils'
 import styles from '../App.module.css'
 
 export default function CadastrarFaixa() {
@@ -12,6 +12,8 @@ export default function CadastrarFaixa() {
   const [faixas, setFaixas] = useState([])
   const [loading, setLoading] = useState(false)
   const [mensagem, setMensagem] = useState(null)
+  
+  const [faixaDetalhes, setFaixaDetalhes] = useState(null)
   
   useEffect(() => {
     carregarFaixas()
@@ -87,6 +89,33 @@ export default function CadastrarFaixa() {
     
     await supabase.from('faixas_apac').update({ ativo: false }).eq('id', id)
     carregarFaixas()
+  }
+
+  function gerarListaNumeros(faixa) {
+    if (!faixa) return []
+    const lista = []
+    const maxToRender = 2000
+    
+    let atual = BigInt(faixa.numero_inicial)
+    const final = BigInt(faixa.numero_final)
+    const proximo = BigInt(faixa.proximo_numero)
+    let count = 0
+    
+    while (atual <= final && count < maxToRender) {
+      const base12 = String(atual).padStart(12, '0')
+      const dv = calcularDV(base12)
+      const numeroAPAC = formatarAPAC(base12, dv)
+      
+      lista.push({
+        numero: String(atual),
+        numeroAPAC,
+        utilizado: atual < proximo
+      })
+      
+      atual++
+      count++
+    }
+    return lista
   }
 
   return (
@@ -201,12 +230,15 @@ export default function CadastrarFaixa() {
                           <div className={`${styles.statusBadge} ${styles.badge_error}`}><span className={styles.badgeDot}/> Inativa</div>
                         )}
                       </td>
-                      <td style={{ padding: '0.75rem' }}>
+                      <td style={{ padding: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         {f.ativo && (
                           <button onClick={() => inativarFaixa(f.id)} style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
                             Inativar
                           </button>
                         )}
+                        <button onClick={() => setFaixaDetalhes(f)} title="Detalhes da faixa" style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                          ℹ️
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -223,6 +255,50 @@ export default function CadastrarFaixa() {
           </section>
         </div>
       </main>
+
+      {/* Modal de Detalhes da Faixa */}
+      {faixaDetalhes && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '0.5rem' }}>Detalhes: {faixaDetalhes.lote}</h2>
+            <p style={{ margin: '0 0 1rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Listagem de números gerados na faixa (Exibindo até 2000 itens se a faixa for muito grande).</p>
+            
+            <div style={{ overflowY: 'auto', flex: 1, border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                <thead style={{ position: 'sticky', top: 0, background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                  <tr>
+                    <th style={{ padding: '0.75rem' }}>Número APAC</th>
+                    <th style={{ padding: '0.75rem' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gerarListaNumeros(faixaDetalhes).map(item => (
+                    <tr key={item.numero} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '0.5rem 0.75rem', fontFamily: 'monospace' }}>{item.numeroAPAC}</td>
+                      <td style={{ padding: '0.5rem 0.75rem' }}>
+                        {item.utilizado 
+                          ? <span style={{ color: '#ef4444', background: '#fef2f2', padding: '0.2rem 0.5rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '600' }}>✕ Utilizado</span>
+                          : <span style={{ color: '#008E7B', background: '#e0f6f4', padding: '0.2rem 0.5rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '600' }}>✓ Disponível</span>
+                        }
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button 
+                onClick={() => setFaixaDetalhes(null)}
+                style={{ background: '#e5e7eb', color: '#374151', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
