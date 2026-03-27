@@ -1,18 +1,6 @@
-/**
- * Calcula o dígito verificador de um número APAC de 12 dígitos.
- * Algoritmo: módulo 11, pesos 2 a 9 da direita para a esquerda.
- * Resto 0 ou 1 → DV = 0, caso contrário DV = 11 - resto.
- */
 export function calcularDV(numero12) {
-  const digits = String(numero12).padStart(12, '0').split('').map(Number)
-  let soma = 0
-  let peso = 2
-  for (let i = digits.length - 1; i >= 0; i--) {
-    soma += digits[i] * peso
-    peso = peso === 9 ? 2 : peso + 1
-  }
-  const resto = soma % 11
-  return resto === 0 || resto === 1 ? 0 : 11 - resto
+  const resto = Number(BigInt(numero12) % 11n)
+  return resto === 10 ? 0 : resto
 }
 
 /**
