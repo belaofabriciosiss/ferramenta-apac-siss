@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabaseClient'
-import { calcularDV, formatarAPAC, validarCNS } from '../utils/apacUtils'
+import { calcularDV, validarCNS } from '../utils/apacUtils'
+import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinha13, getExtensaoMes } from '../utils/txtGenerator'
 import styles from '../App.module.css'
 
 function InputField({ label, sublabel, id, children, error }) {
@@ -21,6 +22,15 @@ export default function GerarAPAC() {
   const fileInputRef = useRef(null)
 
   const [planilha, setPlanilha] = useState(null)
+  
+  const [competencia, setCompetencia] = useState('')
+  const [dataGeracao, setDataGeracao] = useState('')
+  const [orgaoOrigem, setOrgaoOrigem] = useState('')
+  const [cnes, setCnes] = useState('')
+  const [cnpj, setCnpj] = useState('')
+  const [orgaoDestino, setOrgaoDestino] = useState('')
+  const [indicadorDestino, setIndicadorDestino] = useState('M')
+
   const [profissional, setProfissional] = useState('')
   const [cnsAutorizador, setCnsAutorizador] = useState('')
   const [cboProfissional, setCboProfissional] = useState('')
@@ -75,6 +85,14 @@ export default function GerarAPAC() {
     const novosErros = {}
 
     if (!planilha) novosErros.planilha = 'Importe a planilha de atendimentos.'
+    
+    if (!competencia || competencia.length !== 6) novosErros.competencia = 'Obrigatório 6 dígitos (AAAAMM).'
+    if (!dataGeracao || dataGeracao.length !== 8) novosErros.dataGeracao = 'Obrigatório 8 dígitos (AAAAMMDD).'
+    if (!orgaoOrigem.trim()) novosErros.orgaoOrigem = 'Informe o Estabelecimento Origem.'
+    if (!cnes || cnes.length !== 6) novosErros.cnes = 'Obrigatório 6 dígitos numéricos.'
+    if (!cnpj || cnpj.length !== 14) novosErros.cnpj = 'Obrigatório 14 dígitos numéricos.'
+    if (!orgaoDestino.trim()) novosErros.orgaoDestino = 'Informe a Secretaria / Órgão Destino.'
+
     if (!profissional.trim()) novosErros.profissional = 'Informe o nome.'
     
     if (!cnsAutorizador.trim()) {
@@ -112,45 +130,75 @@ export default function GerarAPAC() {
       const faixa = faixas.find(f => f.id === faixaSelecionadaId)
       let baseAtual = BigInt(faixa.proximo_numero)
 
-      const dadosPreenchidos = planilha.dados.map((linha) => {
-        const base12 = String(baseAtual).padStart(12, '0')
+      const cabecalho = {
+        competencia,
+        orgaoOrigem,
+        cnes,
+        cnpj,
+        orgaoDestino,
+        indicadorDestino,
+        dataGeracao,
+        nomeAutorizador: profissional.trim(),
+        cnsAutorizador: cnsAutorizador.replace(/\s/g, ''),
+        cboAutorizador: cboProfissional
+      }
+
+      let somaControle = BigInt(0)
+      const atendimentos = []
+      let curBase = baseAtual
+      
+      for (const linhaExcel of planilha.dados) {
+        const base12 = String(curBase).padStart(12, '0')
         const dv = calcularDV(base12)
-        const numeroAPAC = formatarAPAC(base12, dv)
-        baseAtual++
+        const numeroApac = base12 + dv // 13 digitos s/ hífen
+        
+        const procRaw = linhaExcel['PROCEDIMENTOS'] || '0'
+        const valProc = BigInt(String(procRaw).replace(/\D/g, '') || 0)
+        const numApacBig = BigInt(numeroApac)
+        
+        // Procedimento + Quantidade (1) + Numero APAC
+        somaControle += valProc + 1n + numApacBig
+        
+        atendimentos.push({ linhaExcel, numeroApac })
+        curBase++
+      }
 
-        return {
-          ...linha,
-          'NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)': numeroAPAC,
-          'NOME PROFISSIONAL AUTORIZADOR': profissional.trim(),
-          'CNS DO AUTORIZADOR': cnsAutorizador.replace(/\s/g, ''),
-          'CBO DO PROFISSIONAL AUTORIZADOR': cboProfissional,
-        }
-      })
+      const qtdRegistros = atendimentos.length
+      const valorControle = Number((somaControle % 1111n) + 1111n)
 
-      const wb = XLSX.utils.book_new()
-      const ws = XLSX.utils.json_to_sheet(dadosPreenchidos)
+      let txt = ''
+      txt += gerarLinha01(cabecalho, qtdRegistros, valorControle) + '\r\n'
 
-      const colunas = Object.keys(dadosPreenchidos[0] || {})
-      ws['!cols'] = colunas.map(col => ({ wch: Math.min(Math.max(col.length, 15), 50) }))
-      XLSX.utils.book_append_sheet(wb, ws, 'APAC')
+      for (const item of atendimentos) {
+        txt += gerarLinha14(item.linhaExcel, item.numeroApac, cabecalho) + '\r\n'
+        txt += gerarLinha06(item.linhaExcel, item.numeroApac, cabecalho) + '\r\n'
+        txt += gerarLinha13(item.linhaExcel, item.numeroApac, cabecalho) + '\r\n'
+      }
 
-      const mesAno = new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }).replace('/', '_')
-      const nomeArquivo = `APAC_${mesAno}.xlsx`
-      XLSX.writeFile(wb, nomeArquivo)
+      const nomeArquivo = `AP${cnes}.${getExtensaoMes(competencia)}`
+      
+      const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = nomeArquivo
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
 
       // Atualiza banco
-      const numerosUsados = planilha.qtdLinhas
-      const novoRestantes = faixa.numeros_restantes - numerosUsados
+      const novoRestantes = faixa.numeros_restantes - qtdRegistros
 
       await supabase.from('faixas_apac').update({
-        proximo_numero: String(baseAtual),
+        proximo_numero: String(curBase),
         numeros_restantes: novoRestantes,
         ativo: novoRestantes > 0
       }).eq('id', faixa.id)
 
       setMensagem({
         tipo: 'success',
-        texto: `Arquivo "${nomeArquivo}" gerado com sucesso! ${numerosUsados} registro(s) descontado(s) do lote.`
+        texto: `Arquivo "${nomeArquivo}" exportado com sucesso! ${qtdRegistros} registro(s) descontado(s) do lote.`
       })
       
       carregarFaixas()
@@ -160,7 +208,7 @@ export default function GerarAPAC() {
       }
       
     } catch (err) {
-      setMensagem({ tipo: 'error', texto: `Erro ao gerar o arquivo: ${err.message}` })
+      setMensagem({ tipo: 'error', texto: `Erro ao gerar arquivo TXT: ${err.message}` })
     } finally {
       setGerando(false)
     }
@@ -172,13 +220,14 @@ export default function GerarAPAC() {
         <div className={styles.headerInner}>
           <div className={styles.headerText}>
             <h1 className={styles.headerTitle}>Geração do Arquivo APAC</h1>
-            <p className={styles.headerSub}>Preencha a planilha e escolha um lote ativo para gerar a numeração.</p>
+            <p className={styles.headerSub}>Preencha os dados e escolha um lote ativo para gerar o arquivo TXT de exportação.</p>
           </div>
         </div>
       </header>
 
       <main className={styles.main} style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <div className={styles.card}>
+          
           {/* Seção 1 — Planilha */}
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
@@ -224,10 +273,56 @@ export default function GerarAPAC() {
 
           <div className={styles.divider} />
 
-          {/* Seção 2 — Profissional */}
+          {/* Seção 2 — Cabeçalho */}
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <span className={styles.sectionNumber}>02</span>
+              <div>
+                <h2 className={styles.sectionTitle}>Dados do Cabeçalho DATASUS</h2>
+                <p className={styles.sectionDesc}>Informações fixas exportadas no início do arquivo.</p>
+              </div>
+            </div>
+
+            <div className={styles.fieldsRow}>
+              <InputField label="Ano/Mês da Produção" sublabel="(AAAAMM)" id="competencia" error={erros.competencia}>
+                <input id="competencia" type="text" className={`${styles.input} ${styles.inputMono} ${erros.competencia ? styles.inputError : ''}`} placeholder="Ex: 202603" maxLength={6} value={competencia} onChange={e => { setCompetencia(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, competencia: null })) }} />
+              </InputField>
+              <InputField label="Data Geração Remessa" sublabel="(AAAAMMDD)" id="dataGen" error={erros.dataGeracao}>
+                <input id="dataGen" type="text" className={`${styles.input} ${styles.inputMono} ${erros.dataGeracao ? styles.inputError : ''}`} placeholder="Ex: 20260301" maxLength={8} value={dataGeracao} onChange={e => { setDataGeracao(e.target.value.replace(/\D/g, '').slice(0, 8)); setErros(prev => ({ ...prev, dataGeracao: null })) }} />
+              </InputField>
+              <InputField label="CNES" sublabel="(6 dígitos numéricos)" id="cnes" error={erros.cnes}>
+                <input id="cnes" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cnes ? styles.inputError : ''}`} placeholder="443604" maxLength={6} value={cnes} onChange={e => { setCnes(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, cnes: null })) }} />
+              </InputField>
+            </div>
+
+            <div className={styles.fieldsRow} style={{ marginTop: '1rem' }}>
+              <InputField label="Estabelecimento Origem" id="orgOrigem" error={erros.orgaoOrigem}>
+                <input id="orgOrigem" type="text" className={`${styles.input} ${erros.orgaoOrigem ? styles.inputError : ''}`} placeholder="POUPA TEMPO DA SAUDE" value={orgaoOrigem} onChange={e => { setOrgaoOrigem(e.target.value.toUpperCase()); setErros(prev => ({ ...prev, orgaoOrigem: null })) }} />
+              </InputField>
+              <InputField label="CNPJ do Prestador" sublabel="(14 dígitos)" id="cnpj" error={erros.cnpj}>
+                <input id="cnpj" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cnpj ? styles.inputError : ''}`} placeholder="Somente números" maxLength={14} value={cnpj} onChange={e => { setCnpj(e.target.value.replace(/\D/g, '').slice(0, 14)); setErros(prev => ({ ...prev, cnpj: null })) }} />
+              </InputField>
+            </div>
+
+            <div className={styles.fieldsRow} style={{ marginTop: '1rem' }}>
+              <InputField label="Secretaria de Saúde" sublabel="(Órgão Destino)" id="orgDestino" error={erros.orgaoDestino}>
+                <input id="orgDestino" type="text" className={`${styles.input} ${erros.orgaoDestino ? styles.inputError : ''}`} placeholder="SECRETARIA MUNICIPAL DE SAUDE" value={orgaoDestino} onChange={e => { setOrgaoDestino(e.target.value.toUpperCase()); setErros(prev => ({ ...prev, orgaoDestino: null })) }} />
+              </InputField>
+              <InputField label="Órgão Destino (M/E)" id="indDestino">
+                <select className={styles.input} value={indicadorDestino} onChange={e => setIndicadorDestino(e.target.value)}>
+                  <option value="M">M - Municipal</option>
+                  <option value="E">E - Estadual</option>
+                </select>
+              </InputField>
+            </div>
+          </section>
+
+          <div className={styles.divider} />
+
+          {/* Seção 3 — Profissional */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionNumber}>03</span>
               <div>
                 <h2 className={styles.sectionTitle}>Profissional Autorizador</h2>
                 <p className={styles.sectionDesc}>Dados do profissional responsável pela autorização</p>
@@ -249,10 +344,10 @@ export default function GerarAPAC() {
 
           <div className={styles.divider} />
 
-          {/* Seção 3 — Faixa APAC */}
+          {/* Seção 4 — Faixa APAC */}
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionNumber}>03</span>
+              <span className={styles.sectionNumber}>04</span>
               <div>
                 <h2 className={styles.sectionTitle}>Numeração da APAC (Lote)</h2>
                 <p className={styles.sectionDesc}>Selecione uma faixa ativa previamente cadastrada no banco.</p>
@@ -297,7 +392,7 @@ export default function GerarAPAC() {
 
           <div className={styles.actions}>
             <button className={`${styles.btnGerar} ${gerando ? styles.btnGerando : ''}`} onClick={handleGerar} disabled={gerando || faixas.length === 0}>
-              {gerando ? (<><span className={styles.spinner} /> Gerando...</>) : (<><span className={styles.btnIcon}>⬇</span> Gerar Arquivo APAC</>)}
+              {gerando ? (<><span className={styles.spinner} /> Gerando Arquivo...</>) : (<><span className={styles.btnIcon}>⬇</span> Exportar .TXT (SIA)</>)}
             </button>
           </div>
         </div>
