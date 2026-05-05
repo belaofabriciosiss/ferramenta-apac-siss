@@ -149,15 +149,15 @@ export function getProcedimentos13(valorExcel) {
   return MAPA_PROCEDIMENTOS_13[procNorm] || []
 }
 
-// Gera UM bloco de linha 13 para um procedimento específico
-function gerarUmaLinha13(codigoProc, numeroApac, cabecalho) {
+// Gera UMA linha 13 para um procedimento específico com quantidade variável
+function gerarUmaLinha13(codigoProc, quantidade, numeroApac, cabecalho) {
   let linha = ''
   linha += '13'               // Indicador 13
   linha += padNum(cabecalho.competencia, 6)  // ANO/MÊS PRODUÇÃO
   linha += padNum(numeroApac, 13)            // NÚMERO APAC
   linha += padNum(codigoProc, 10)            // CÓDIGO DO PROCEDIMENTO
   linha += padNum(cabecalho.cboAutorizador, 6) // CBO
-  linha += padNum('1', 7)                    // Quantidade fixo 0000001
+  linha += padNum(String(quantidade), 7)     // QUANTIDADE
   linha += padText('', 14)                   // CNPJ Cessão
   linha += padText('', 6)                    // Nota Fiscal
   linha += padText('', 4)                    // CID Principal
@@ -169,8 +169,29 @@ function gerarUmaLinha13(codigoProc, numeroApac, cabecalho) {
   return linha
 }
 
-// Retorna ARRAY de linhas 13 com base no mapeamento do proc. da linha 14
+/**
+ * Retorna ARRAY de linhas 13 para cada atendimento na ordem:
+ * 1. Proc. principal da OCI (da planilha)             → qty 1
+ * 2. Código fixo 0301010072                           → qty = nº de procs mapeados
+ * 3. Cada proc. mapeado do OCI                        → qty 1 cada
+ */
 export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
-  const procs13 = getProcedimentos13(linhaExcel['PROCEDIMENTOS'])
-  return procs13.map(proc => gerarUmaLinha13(proc, numeroApac, cabecalho))
+  const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
+  const procsMapeados = MAPA_PROCEDIMENTOS_13[procPrincipal] || []
+  const qtdMapeados   = procsMapeados.length
+
+  const linhas = []
+
+  // 1. Linha com o procedimento principal (da planilha)
+  linhas.push(gerarUmaLinha13(procPrincipal, 1, numeroApac, cabecalho))
+
+  // 2. Linha fixa 0301010072 — quantidade = número de procs mapeados
+  linhas.push(gerarUmaLinha13('0301010072', qtdMapeados, numeroApac, cabecalho))
+
+  // 3. Linhas com cada procedimento mapeado para o OCI
+  for (const proc of procsMapeados) {
+    linhas.push(gerarUmaLinha13(proc, 1, numeroApac, cabecalho))
+  }
+
+  return linhas
 }
