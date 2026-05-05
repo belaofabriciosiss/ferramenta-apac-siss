@@ -151,18 +151,25 @@ export default function GerarAPAC() {
         const base12 = String(curBase).padStart(12, '0')
         const dv = calcularDV(base12)
         const numeroApac = base12 + dv // 13 digitos s/ hífen
-        
-        // Soma os procedimentos das linhas 14 e 13 conforme especificação
-        const proc14Norm = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
-        somaControle += BigInt(proc14Norm) + 1n // procedimento linha 14 + quantidade (1)
 
-        const procs13 = getProcedimentos13(linhaExcel['PROCEDIMENTOS'])
+        // Soma todos os procedimentos das linhas 13 conforme nova estrutura
+        const proc14Norm  = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
+        const procs13     = getProcedimentos13(linhaExcel['PROCEDIMENTOS'])
+        const qtdMapeados = BigInt(procs13.length)
+
+        // 1. Proc. principal (linha 13 qty 1)
+        somaControle += BigInt(proc14Norm) + 1n
+
+        // 2. Código fixo 0301010072 (qty = número de procs mapeados)
+        somaControle += 301010072n + qtdMapeados
+
+        // 3. Cada proc. mapeado (qty 1 cada)
         for (const proc of procs13) {
-          const procNorm = normalizarProcedimento(proc)
-          somaControle += BigInt(procNorm) + 1n // procedimento linha 13 + quantidade (1)
+          somaControle += BigInt(normalizarProcedimento(proc)) + 1n
         }
+
         somaControle += BigInt(numeroApac) // APAC number uma vez por atendimento
-        
+
         atendimentos.push({ linhaExcel, numeroApac })
         curBase++
       }
