@@ -208,8 +208,8 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
   // 1. Linha com o procedimento principal (da planilha)
   linhas.push(gerarUmaLinha13(procPrincipal, 1, numeroApac, cabecalho))
 
-  // 2. Linha fixa 0301010072 — quantidade = número de procs mapeados
-  linhas.push(gerarUmaLinha13('0301010072', qtdMapeados, numeroApac, cabecalho))
+  // 2. Linha fixa 0301010072 — quantidade sempre 1
+  linhas.push(gerarUmaLinha13('0301010072', 1, numeroApac, cabecalho))
 
   // 3. Linhas com cada procedimento mapeado para o OCI
   for (const proc of procsMapeados) {
