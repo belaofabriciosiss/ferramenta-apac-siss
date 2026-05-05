@@ -160,6 +160,13 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0904010031': ['0209040041', '0209040025'],
 }
 
+// CBO fixo por procedimento principal (todas as linhas 13 do atendimento usam o mesmo CBO)
+const MAPA_CBO_PROCEDIMENTO = {
+  '0902010018': '225120', // OCI Avaliação de Risco Cirúrgico
+  '0902010026': '225120', // OCI Avaliação Cardiológica
+  '0904010031': '225275', // OCI Avaliação Diagnóstica de Nasofaringe e Orofaringe
+}
+
 // Normaliza o código do procedimento vindo do Excel (sem o zero à esquerda)
 export function normalizarProcedimento(valorExcel) {
   const cleaned = String(valorExcel || '').replace(/\D/g, '')
@@ -172,14 +179,14 @@ export function getProcedimentos13(valorExcel) {
   return MAPA_PROCEDIMENTOS_13[procNorm] || []
 }
 
-// Gera UMA linha 13 para um procedimento específico com quantidade variável
-function gerarUmaLinha13(codigoProc, quantidade, numeroApac, cabecalho) {
+// Gera UMA linha 13 para um procedimento específico com CBO e quantidade variáveis
+function gerarUmaLinha13(codigoProc, quantidade, cbo, numeroApac, cabecalho) {
   let linha = ''
   linha += '13'               // Indicador 13
   linha += padNum(cabecalho.competencia, 6)  // ANO/MÊS PRODUÇÃO
   linha += padNum(numeroApac, 13)            // NÚMERO APAC
   linha += padNum(codigoProc, 10)            // CÓDIGO DO PROCEDIMENTO
-  linha += padNum(cabecalho.cboAutorizador, 6) // CBO
+  linha += padNum(cbo, 6)                    // CBO fixo do procedimento
   linha += padNum(String(quantidade), 7)     // QUANTIDADE
   linha += padText('', 14)                   // CNPJ Cessão
   linha += padText('', 6)                    // Nota Fiscal
@@ -201,19 +208,21 @@ function gerarUmaLinha13(codigoProc, quantidade, numeroApac, cabecalho) {
 export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
   const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
   const procsMapeados = MAPA_PROCEDIMENTOS_13[procPrincipal] || []
-  const qtdMapeados   = procsMapeados.length
+
+  // CBO fixo do procedimento; fallback para o CBO do autorizador caso não mapeado
+  const cbo = MAPA_CBO_PROCEDIMENTO[procPrincipal] || cabecalho.cboAutorizador
 
   const linhas = []
 
   // 1. Linha com o procedimento principal (da planilha)
-  linhas.push(gerarUmaLinha13(procPrincipal, 1, numeroApac, cabecalho))
+  linhas.push(gerarUmaLinha13(procPrincipal, 1, cbo, numeroApac, cabecalho))
 
   // 2. Linha fixa 0301010072 — quantidade sempre 1
-  linhas.push(gerarUmaLinha13('0301010072', 1, numeroApac, cabecalho))
+  linhas.push(gerarUmaLinha13('0301010072', 1, cbo, numeroApac, cabecalho))
 
   // 3. Linhas com cada procedimento mapeado para o OCI
   for (const proc of procsMapeados) {
-    linhas.push(gerarUmaLinha13(proc, 1, numeroApac, cabecalho))
+    linhas.push(gerarUmaLinha13(proc, 1, cbo, numeroApac, cabecalho))
   }
 
   return linhas
