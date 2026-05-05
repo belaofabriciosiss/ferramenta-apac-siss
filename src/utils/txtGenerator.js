@@ -1,6 +1,13 @@
+// Remove acentos e caracteres especiais (Á→A, Ã→A, Ó→O, ç→c, etc.)
+function removerAcentos(texto) {
+  return String(texto || '')
+    .normalize('NFD')               // decompõe em letra + marca diacrítica
+    .replace(/[\u0300-\u036f]/g, '') // remove as marcas diacríticas
+}
+
 export function padText(texto, tamanho) {
   if (!texto) texto = ''
-  const t = String(texto)
+  const t = removerAcentos(String(texto))
   if (t.length > tamanho) {
     return t.substring(0, tamanho)
   }
