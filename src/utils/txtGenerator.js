@@ -23,6 +23,21 @@ export function padNum(numero, tamanho) {
   return cleaned.padStart(tamanho, '0')
 }
 
+// Formata data para AAAAMMDD, tratando tanto strings quanto objetos Date do Excel
+function formatarDataAAAAMMDD(valor) {
+  if (!valor) return '00000000'
+  // Se o Excel converteu para objeto Date
+  if (valor instanceof Date) {
+    const y = valor.getFullYear()
+    const m = String(valor.getMonth() + 1).padStart(2, '0')
+    const d = String(valor.getDate()).padStart(2, '0')
+    return `${y}${m}${d}`
+  }
+  // Se vier como string ou número, pega só os dígitos
+  const s = String(valor).replace(/\D/g, '')
+  return s.padStart(8, '0').slice(0, 8)
+}
+
 // Retorna Mês com 3 letras (Ex: "202501" -> "JAN")
 export function getExtensaoMes(aaaamm) {
   const mes = String(aaaamm).substring(4, 6)
@@ -70,7 +85,7 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += padText(linhaExcel['COMPLEMENTO DO LOGRADOURO DO PACIENTE'], 10) // COMPLEMENTO
   linha += padNum(linhaExcel['CEP (8 DÍGITOS)'], 8) // CEP
   linha += padText(linhaExcel['CÓDIGO DO MUNICIPIO (CÓD. IBGE)'], 7) // MUNICIPIO (pode ser " " caso nao tenha DV)
-  linha += padNum(linhaExcel['DATA DE NASCIMENTO 8 DIGITOS'], 8) // DATA DE NASCIMENTO
+  linha += formatarDataAAAAMMDD(linhaExcel['DATA DE NASCIMENTO 8 DIGITOS']) // DATA DE NASCIMENTO (AAAAMMDD)
   linha += padText(linhaExcel['SEXO DO PACIENTE'], 1) // SEXO
   linha += padText(linhaExcel['NOME DO MÉDICO RESPONSÁVEL'], 30) // MÉDICO RESPONSÁVEL
   linha += padNum(linhaExcel['PROCEDIMENTOS'], 10) // PROCEDIMENTO PRINCIPAL
