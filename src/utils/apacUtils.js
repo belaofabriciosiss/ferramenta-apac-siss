@@ -1,13 +1,6 @@
 export function calcularDV(numero12) {
-  const digits = String(numero12).padStart(12, '0').split('').map(Number)
-  let soma = 0
-  let peso = 2
-  for (let i = digits.length - 1; i >= 0; i--) {
-    soma += digits[i] * peso
-    peso = peso === 9 ? 2 : peso + 1
-  }
-  const resto = soma % 11
-  return resto === 0 || resto === 1 ? 0 : 11 - resto
+  const resto = Number(BigInt(numero12) % 11n)
+  return resto === 10 ? 0 : resto
 }
 
 /**
