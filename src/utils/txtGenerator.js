@@ -66,6 +66,28 @@ export function gerarLinha01(cabecalho, qtdRegistros, valorControle) {
   return linha
 }
 
+/**
+ * Regra CPF x Cartão SUS:
+ * - Prioridade para CPF. Se existir, preenche CPF e deixa Cartão SUS em branco.
+ * - Se não houver CPF, preenche Cartão SUS e deixa CPF em branco.
+ */
+function resolverDocumentoPaciente(linhaExcel) {
+  const cpf = String(linhaExcel['CPF DO INDIVIDUO'] || '').replace(/\D/g, '')
+  const cns = String(linhaExcel['CART\u00c3O SUS DO PACIENTE'] || '').replace(/\D/g, '')
+
+  if (cpf.length > 0) {
+    return {
+      cartaoSus: ''.padStart(15, ' '), // branco
+      cpf: cpf.padStart(11, '0').slice(0, 11)
+    }
+  } else {
+    return {
+      cartaoSus: cns.padStart(15, '0').slice(0, 15),
+      cpf: ''.padStart(11, ' ') // branco
+    }
+  }
+}
+
 export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   let linha = ''
   linha += '14' // 2 (Identificador de linha corpo APAC)
@@ -92,7 +114,8 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += padNum(linhaExcel['CÓDIGO DO MOTIVO DE SAÍDA/PERMANENCIA - PORTARIA Nº 719, DE 28 DEZEMBRO DE 2007'], 2) // MOTIVO SAÍDA
   linha += padText(linhaExcel['DATA (AAMMDD) DA OCORRÊNCIA NO CASO DE ALTA, TRANSFERENCIA OU ÓBITO'], 8) // DATA SAÍDA
   linha += padText(cabecalho.nomeAutorizador, 30) // PROFISSIONAL AUTORIZADOR DO FORMULÁRIO (30)
-  linha += padNum(linhaExcel['CARTÃO SUS DO PACIENTE'], 15) // CARTÃO SUS
+  const docPaciente = resolverDocumentoPaciente(linhaExcel)
+  linha += docPaciente.cartaoSus // CARTÃO SUS (15) - branco se tiver CPF
   linha += padNum(linhaExcel['CNS MÉDICO RESPONSÁVEL'], 15) // CNS MÉDICO
   linha += padNum(cabecalho.cnsAutorizador, 15) // CNS AUTORIZADOR DO FORMULÁRIO (15)
   linha += padText(linhaExcel['CID CAUSAS ASSOCIADAS'], 4) // CID
@@ -113,7 +136,7 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += padNum(linhaExcel['TELEFONE DE CONTATO'], 9) // TELEFONE
   linha += padText(linhaExcel['EMAIL DO PACIENTE'], 40) // EMAIL
   linha += padNum(linhaExcel['CNS MÉDICO EXECUTANTE DO PROCEDIMENTO'], 15) // CNS MÉDICO EXECUTANTE
-  linha += padNum(linhaExcel['CPF DO INDIVIDUO'], 11) // CPF DO INDIVIDUO
+  linha += docPaciente.cpf // CPF DO INDIVIDUO (11) - branco se tiver Cartão SUS
   linha += padText(linhaExcel['IDENTIFICAÇÃO NACIONAL DE EQUIPE'], 10) // EQUIPE
   linha += padText(linhaExcel['PESSOA EM SITUAÇÃO DE RUA'], 1) // PESSOA EM SITUAÇÃO DE RUA (N ou S ou branco) - Ops, truncou na msg usuário "PESSOA EM SITUAÇÃO DE 81" -> vou usar padText
   return linha
