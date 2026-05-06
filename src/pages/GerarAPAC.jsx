@@ -37,6 +37,7 @@ export default function GerarAPAC() {
   
   const [faixas, setFaixas] = useState([])
   const [faixaSelecionadaId, setFaixaSelecionadaId] = useState('')
+  const [modoNumeracao, setModoNumeracao] = useState('faixa') // 'faixa' | 'planilha'
 
   const [erros, setErros] = useState({})
   const [mensagem, setMensagem] = useState(null)
@@ -107,12 +108,14 @@ export default function GerarAPAC() {
       novosErros.cbo = 'Exatamente 6 dígitos numéricos.'
     }
 
-    if (!faixaSelecionadaId) {
-      novosErros.faixa = 'Selecione um lote de numeração.'
-    } else {
-      const faixa = faixas.find(f => f.id === faixaSelecionadaId)
-      if (planilha && faixa.numeros_restantes < planilha.qtdLinhas) {
-        novosErros.faixa = `O lote tem apenas ${faixa.numeros_restantes} números disponíveis. A planilha tem ${planilha.qtdLinhas} linhas.`
+    if (modoNumeracao === 'faixa') {
+      if (!faixaSelecionadaId) {
+        novosErros.faixa = 'Selecione um lote de numeração.'
+      } else {
+        const faixa = faixas.find(f => f.id === faixaSelecionadaId)
+        if (planilha && faixa.numeros_restantes < planilha.qtdLinhas) {
+          novosErros.faixa = `O lote tem apenas ${faixa.numeros_restantes} números disponíveis. A planilha tem ${planilha.qtdLinhas} linhas.`
+        }
       }
     }
 
@@ -127,17 +130,11 @@ export default function GerarAPAC() {
     setGerando(true)
 
     try {
-      const faixa = faixas.find(f => f.id === faixaSelecionadaId)
-      let baseAtual = BigInt(faixa.proximo_numero)
+      const faixa = modoNumeracao === 'faixa' ? faixas.find(f => f.id === faixaSelecionadaId) : null
+      let curBase = faixa ? BigInt(faixa.proximo_numero) : 0n
 
       const cabecalho = {
-        competencia,
-        orgaoOrigem,
-        cnes,
-        cnpj,
-        orgaoDestino,
-        indicadorDestino,
-        dataGeracao,
+        competencia, orgaoOrigem, cnes, cnpj, orgaoDestino, indicadorDestino, dataGeracao,
         nomeAutorizador: profissional.trim(),
         cnsAutorizador: cnsAutorizador.replace(/\s/g, ''),
         cboAutorizador: cboProfissional
@@ -145,33 +142,30 @@ export default function GerarAPAC() {
 
       let somaControle = BigInt(0)
       const atendimentos = []
-      let curBase = baseAtual
-      
-      for (const linhaExcel of planilha.dados) {
-        const base12 = String(curBase).padStart(12, '0')
-        const dv = calcularDV(base12)
-        const numeroApac = base12 + dv // 13 digitos s/ hífen
 
-        // Soma todos os procedimentos das linhas 13 conforme nova estrutura
+      for (const linhaExcel of planilha.dados) {
+        let numeroApac
+        if (modoNumeracao === 'faixa') {
+          const base12 = String(curBase).padStart(12, '0')
+          const dv = calcularDV(base12)
+          numeroApac = base12 + dv
+          curBase++
+        } else {
+          // Lê diretamente da planilha e normaliza para 13 dígitos sem hífen
+          const raw = String(linhaExcel['NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)'] || '').replace(/\D/g, '')
+          numeroApac = raw.padStart(13, '0').slice(0, 13)
+        }
+
         const proc14Norm  = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
         const procs13     = getProcedimentos13(linhaExcel['PROCEDIMENTOS'])
         const qtdMapeados = BigInt(procs13.length)
 
-        // 1. Proc. principal (linha 13 qty 1)
         somaControle += BigInt(proc14Norm) + 1n
-
-        // 2. Código fixo 0301010072 (qty = número de procs mapeados)
         somaControle += 301010072n + qtdMapeados
-
-        // 3. Cada proc. mapeado (qty 1 cada)
-        for (const proc of procs13) {
-          somaControle += BigInt(normalizarProcedimento(proc)) + 1n
-        }
-
-        somaControle += BigInt(numeroApac) // APAC number uma vez por atendimento
+        for (const proc of procs13) somaControle += BigInt(normalizarProcedimento(proc)) + 1n
+        somaControle += BigInt(numeroApac)
 
         atendimentos.push({ linhaExcel, numeroApac })
-        curBase++
       }
 
       const qtdRegistros = atendimentos.length
@@ -201,25 +195,22 @@ export default function GerarAPAC() {
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      // Atualiza banco
-      const novoRestantes = faixa.numeros_restantes - qtdRegistros
-
-      await supabase.from('faixas_apac').update({
-        proximo_numero: String(curBase),
-        numeros_restantes: novoRestantes,
-        ativo: novoRestantes > 0
-      }).eq('id', faixa.id)
+      // Atualiza banco apenas no modo faixa
+      if (modoNumeracao === 'faixa' && faixa) {
+        const novoRestantes = faixa.numeros_restantes - qtdRegistros
+        await supabase.from('faixas_apac').update({
+          proximo_numero: String(curBase),
+          numeros_restantes: novoRestantes,
+          ativo: novoRestantes > 0
+        }).eq('id', faixa.id)
+        carregarFaixas()
+        if (novoRestantes <= 0) setFaixaSelecionadaId('')
+      }
 
       setMensagem({
         tipo: 'success',
-        texto: `Arquivo "${nomeArquivo}" exportado com sucesso! ${qtdRegistros} registro(s) descontado(s) do lote.`
+        texto: `Arquivo "${nomeArquivo}" exportado com sucesso! ${qtdRegistros} registro(s) processado(s).`
       })
-      
-      carregarFaixas()
-      
-      if(novoRestantes <= 0) {
-         setFaixaSelecionadaId('')
-      }
       
     } catch (err) {
       setMensagem({ tipo: 'error', texto: `Erro ao gerar arquivo TXT: ${err.message}` })
@@ -358,39 +349,80 @@ export default function GerarAPAC() {
 
           <div className={styles.divider} />
 
-          {/* Seção 4 — Faixa APAC */}
+          {/* Seção 4 — Numeração APAC */}
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <span className={styles.sectionNumber}>04</span>
               <div>
-                <h2 className={styles.sectionTitle}>Numeração da APAC (Lote)</h2>
-                <p className={styles.sectionDesc}>Selecione uma faixa ativa previamente cadastrada no banco.</p>
+                <h2 className={styles.sectionTitle}>Origem da Numeração APAC</h2>
+                <p className={styles.sectionDesc}>Escolha como os números de APAC serão atribuídos neste arquivo.</p>
               </div>
             </div>
 
-            <InputField label="Selecione o Lote" id="lote" error={erros.faixa}>
-              <select
-                className={`${styles.input} ${erros.faixa ? styles.inputError : ''}`}
-                value={faixaSelecionadaId}
-                onChange={e => { setFaixaSelecionadaId(e.target.value); setErros(prev => ({ ...prev, faixa: null })) }}
+            {/* Seletor de modo */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+              <button
+                type="button"
+                onClick={() => { setModoNumeracao('faixa'); setErros(prev => ({ ...prev, faixa: null })) }}
+                style={{
+                  flex: 1, padding: '1rem', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
+                  border: modoNumeracao === 'faixa' ? '2px solid #008E7B' : '2px solid #e5e7eb',
+                  background: modoNumeracao === 'faixa' ? '#f0fdf9' : '#f9fafb',
+                  transition: 'all 0.2s'
+                }}
               >
-                <option value="">-- Selecione uma faixa disponível --</option>
-                {faixas.map(f => (
-                  <option key={f.id} value={f.id}>
-                    {f.lote} {f.estabelecimento ? `(${f.estabelecimento})` : ''} - Restam {f.numeros_restantes}
-                  </option>
-                ))}
-              </select>
-            </InputField>
-            
-            {faixas.length === 0 && (
-              <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>Nenhum lote ativo. Cadastre uma faixa no menu lateral.</p>
+                <div style={{ fontWeight: '700', color: modoNumeracao === 'faixa' ? '#008E7B' : '#374151', marginBottom: '0.25rem' }}>📋 Lote Cadastrado</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Usar uma faixa de numeração previamente cadastrada no sistema.</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setModoNumeracao('planilha'); setErros(prev => ({ ...prev, faixa: null })) }}
+                style={{
+                  flex: 1, padding: '1rem', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
+                  border: modoNumeracao === 'planilha' ? '2px solid #008E7B' : '2px solid #e5e7eb',
+                  background: modoNumeracao === 'planilha' ? '#f0fdf9' : '#f9fafb',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <div style={{ fontWeight: '700', color: modoNumeracao === 'planilha' ? '#008E7B' : '#374151', marginBottom: '0.25rem' }}>📄 Numeração da Planilha</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Os números de APAC já estão preenchidos na coluna da planilha.</div>
+              </button>
+            </div>
+
+            {/* Conteúdo condicional */}
+            {modoNumeracao === 'faixa' && (
+              <>
+                <InputField label="Selecione o Lote" id="lote" error={erros.faixa}>
+                  <select
+                    className={`${styles.input} ${erros.faixa ? styles.inputError : ''}`}
+                    value={faixaSelecionadaId}
+                    onChange={e => { setFaixaSelecionadaId(e.target.value); setErros(prev => ({ ...prev, faixa: null })) }}
+                  >
+                    <option value="">-- Selecione uma faixa disponível --</option>
+                    {faixas.map(f => (
+                      <option key={f.id} value={f.id}>
+                        {f.lote} {f.estabelecimento ? `(${f.estabelecimento})` : ''} - Restam {f.numeros_restantes}
+                      </option>
+                    ))}
+                  </select>
+                </InputField>
+                {faixas.length === 0 && (
+                  <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>Nenhum lote ativo. Cadastre uma faixa no menu lateral.</p>
+                )}
+                {erros.faixa && (
+                  <div className={styles.alertBox} style={{ marginTop: '1rem' }}>
+                    <span className={styles.alertIcon}>⚠</span>
+                    {erros.faixa}
+                  </div>
+                )}
+              </>
             )}
-            
-            {erros.faixa && (
-              <div className={styles.alertBox} style={{ marginTop: '1rem' }}>
-                <span className={styles.alertIcon}>⚠</span>
-                {erros.faixa}
+
+            {modoNumeracao === 'planilha' && (
+              <div style={{ background: '#f0fdf9', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1rem' }}>
+                <p style={{ margin: 0, color: '#166534', fontSize: '0.875rem' }}>
+                  ✓ Os números de APAC serão lidos diretamente da coluna <strong>NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)</strong> da planilha. Nenhum lote será debitado.
+                </p>
               </div>
             )}
           </section>
@@ -405,7 +437,7 @@ export default function GerarAPAC() {
           )}
 
           <div className={styles.actions}>
-            <button className={`${styles.btnGerar} ${gerando ? styles.btnGerando : ''}`} onClick={handleGerar} disabled={gerando || faixas.length === 0}>
+            <button className={`${styles.btnGerar} ${gerando ? styles.btnGerando : ''}`} onClick={handleGerar} disabled={gerando || (modoNumeracao === 'faixa' && faixas.length === 0)}>
               {gerando ? (<><span className={styles.spinner} /> Gerando Arquivo...</>) : (<><span className={styles.btnIcon}>⬇</span> Exportar .TXT (SIA)</>)}
             </button>
           </div>
