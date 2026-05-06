@@ -103,7 +103,8 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += padText(linhaExcel['NOME PACIENTE'], 30) // NOME PACIENTE
   linha += padText(linhaExcel['NOME DA MÃE'], 30) // NOME DA MÃE
   linha += padText(linhaExcel['IDENTIFICAÇÃO DO LOGRADOURO DE RESIDÊNCIA DO PACIENTE'], 30) // LOGRADOURO RESIDENCIA
-  linha += padText(linhaExcel['NÚMERO CORRESPONDENTE A RESIDÊNCIA DO PACIENTE'], 5) // NUMERO
+  const _numResidencia = String(linhaExcel['NÚMERO CORRESPONDENTE A RESIDÊNCIA DO PACIENTE'] || '').trim()
+  linha += padText(_numResidencia || 'S/N', 5) // NUMERO (S/N quando vazio)
   linha += padText(linhaExcel['COMPLEMENTO DO LOGRADOURO DO PACIENTE'], 10) // COMPLEMENTO
   linha += padNum(linhaExcel['CEP (8 DÍGITOS)'], 8) // CEP
   linha += padText(linhaExcel['CÓDIGO DO MUNICIPIO (CÓD. IBGE)'], 7) // MUNICIPIO (pode ser " " caso nao tenha DV)
