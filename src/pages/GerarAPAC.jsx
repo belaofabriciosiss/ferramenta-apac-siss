@@ -119,6 +119,16 @@ export default function GerarAPAC() {
       }
     }
 
+    if (modoNumeracao === 'planilha' && planilha) {
+      const semNumero = planilha.dados.every(row => {
+        const raw = String(row['NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)'] || '').replace(/\D/g, '')
+        return raw.length === 0
+      })
+      if (semNumero) {
+        novosErros.apacPlanilha = 'Nenhum número APAC encontrado na planilha. Verifique a coluna "NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)" e corrija antes de exportar.'
+      }
+    }
+
     setErros(novosErros)
     return Object.keys(novosErros).length === 0
   }
@@ -419,10 +429,18 @@ export default function GerarAPAC() {
             )}
 
             {modoNumeracao === 'planilha' && (
-              <div style={{ background: '#f0fdf9', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1rem' }}>
-                <p style={{ margin: 0, color: '#166534', fontSize: '0.875rem' }}>
-                  ✓ Os números de APAC serão lidos diretamente da coluna <strong>NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)</strong> da planilha. Nenhum lote será debitado.
-                </p>
+              <div>
+                <div style={{ background: '#f0fdf9', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1rem' }}>
+                  <p style={{ margin: 0, color: '#166534', fontSize: '0.875rem' }}>
+                    ✓ Os números de APAC serão lidos diretamente da coluna <strong>NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)</strong> da planilha. Nenhum lote será debitado.
+                  </p>
+                </div>
+                {erros.apacPlanilha && (
+                  <div className={styles.alertBox} style={{ marginTop: '0.75rem' }}>
+                    <span className={styles.alertIcon}>⚠</span>
+                    {erros.apacPlanilha}
+                  </div>
+                )}
               </div>
             )}
           </section>
