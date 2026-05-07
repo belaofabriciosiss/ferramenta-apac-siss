@@ -156,9 +156,20 @@ export function gerarLinha06(linhaExcel, numeroApac, cabecalho) {
 
 // Mapeamento: procedimento da linha 14 → lista de procedimentos para as linhas 13
 const MAPA_PROCEDIMENTOS_13 = {
+  // Cirurgia / Risco Cirúrgico
   '0902010018': ['0211020036'],
+  // Cardiologia
   '0902010026': ['0211020036'],
+  // ORL - Nasofaringe e Orofaringe
   '0904010031': ['0209040041', '0209040025'],
+  // Oftalmologia - 0 a 8 anos
+  '0905010019': ['0211060232', '0211060127', '0211060020'],
+  // Oftalmologia - Estrabismo
+  '0905010027': ['0211060232', '0211060127', '0211060259', '0211060020'],
+  // Oftalmologia - a partir de 9 anos
+  '0905010035': ['0211060259', '0211060127', '0211060020'],
+  // Oftalmologia - Retinopatia Diabética
+  '0905010043': ['0211060127', '0211060178', '0211060020', '0211060259'],
 }
 
 // CBO fixo por procedimento principal (todas as linhas 13 do atendimento usam o mesmo CBO)
@@ -166,6 +177,10 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0902010018': '225120', // OCI Avaliação de Risco Cirúrgico
   '0902010026': '225120', // OCI Avaliação Cardiológica
   '0904010031': '225275', // OCI Avaliação Diagnóstica de Nasofaringe e Orofaringe
+  '0905010019': '225265', // OCI Oftalmologia - 0 a 8 anos
+  '0905010027': '225265', // OCI Avaliação de Estrabismo
+  '0905010035': '225265', // OCI Oftalmologia - a partir de 9 anos
+  '0905010043': '225265', // OCI Avaliação de Retinopatia Diabética
 }
 
 // Normaliza o código do procedimento vindo do Excel (sem o zero à esquerda)
