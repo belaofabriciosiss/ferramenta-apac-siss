@@ -38,6 +38,7 @@ export default function GerarAPAC() {
   const [faixas, setFaixas] = useState([])
   const [faixaSelecionadaId, setFaixaSelecionadaId] = useState('')
   const [modoNumeracao, setModoNumeracao] = useState('faixa') // 'faixa' | 'planilha'
+  const [modoProfissional, setModoProfissional] = useState('manual') // 'manual' | 'planilha'
 
   const [erros, setErros] = useState({})
   const [mensagem, setMensagem] = useState(null)
@@ -94,18 +95,18 @@ export default function GerarAPAC() {
     if (!cnpj || cnpj.length !== 14) novosErros.cnpj = 'Obrigatório 14 dígitos numéricos.'
     if (!orgaoDestino.trim()) novosErros.orgaoDestino = 'Informe a Secretaria / Órgão Destino.'
 
-    if (!profissional.trim()) novosErros.profissional = 'Informe o nome.'
-    
-    if (!cnsAutorizador.trim()) {
-      novosErros.cns = 'Informe o CNS.'
-    } else if (!validarCNS(cnsAutorizador)) {
-      novosErros.cns = 'Exatamente 15 dígitos numéricos.'
-    }
-
-    if (!cboProfissional.trim()) {
-      novosErros.cbo = 'Informe o CBO.'
-    } else if (!/^\d{6}$/.test(cboProfissional)) {
-      novosErros.cbo = 'Exatamente 6 dígitos numéricos.'
+    if (modoProfissional === 'manual') {
+      if (!profissional.trim()) novosErros.profissional = 'Informe o nome.'
+      if (!cnsAutorizador.trim()) {
+        novosErros.cns = 'Informe o CNS.'
+      } else if (!validarCNS(cnsAutorizador)) {
+        novosErros.cns = 'Exatamente 15 dígitos numéricos.'
+      }
+      if (!cboProfissional.trim()) {
+        novosErros.cbo = 'Informe o CBO.'
+      } else if (!/^\d{6}$/.test(cboProfissional)) {
+        novosErros.cbo = 'Exatamente 6 dígitos numéricos.'
+      }
     }
 
     if (modoNumeracao === 'faixa') {
@@ -175,7 +176,16 @@ export default function GerarAPAC() {
         for (const proc of procs13) somaControle += BigInt(normalizarProcedimento(proc)) + 1n
         somaControle += BigInt(numeroApac)
 
-        atendimentos.push({ linhaExcel, numeroApac })
+        // Cabecalho base (campos fixos)
+        // Campos do profissional são sobrescritos por linha se modoProfissional='planilha'
+        const cabecalhoLinha = modoProfissional === 'planilha' ? {
+          ...cabecalho,
+          nomeAutorizador: String(linhaExcel['NOME PROFISSIONAL AUTORIZADOR'] || '').toUpperCase(),
+          cnsAutorizador:  String(linhaExcel['CNS DO AUTORIZADOR'] || '').replace(/\D/g, ''),
+          cboAutorizador:  String(linhaExcel['CBO DO AUTORIZADOR'] || '').replace(/\D/g, '')
+        } : cabecalho
+
+        atendimentos.push({ linhaExcel, numeroApac, cabecalhoLinha })
       }
 
       const qtdRegistros = atendimentos.length
@@ -185,9 +195,9 @@ export default function GerarAPAC() {
       txt += gerarLinha01(cabecalho, qtdRegistros, valorControle) + '\r\n'
 
       for (const item of atendimentos) {
-        txt += gerarLinha14(item.linhaExcel, item.numeroApac, cabecalho) + '\r\n'
-        txt += gerarLinha06(item.linhaExcel, item.numeroApac, cabecalho) + '\r\n'
-        const linhas13 = gerarLinhas13(item.linhaExcel, item.numeroApac, cabecalho)
+        txt += gerarLinha14(item.linhaExcel, item.numeroApac, item.cabecalhoLinha) + '\r\n'
+        txt += gerarLinha06(item.linhaExcel, item.numeroApac, item.cabecalhoLinha) + '\r\n'
+        const linhas13 = gerarLinhas13(item.linhaExcel, item.numeroApac, item.cabecalhoLinha)
         for (const l13 of linhas13) {
           txt += l13 + '\r\n'
         }
@@ -344,17 +354,59 @@ export default function GerarAPAC() {
               </div>
             </div>
 
-            <div className={styles.fieldsRow}>
-              <InputField label="Nome completo" id="profissional" error={erros.profissional}>
-                <input id="profissional" type="text" className={`${styles.input} ${erros.profissional ? styles.inputError : ''}`} placeholder="Ex.: DRA. MARIA SILVA" value={profissional} onChange={e => { setProfissional(e.target.value.toUpperCase()); setErros(prev => ({ ...prev, profissional: null })) }} />
-              </InputField>
-              <InputField label="CNS do autorizador" sublabel="(15 dígitos)" id="cns" error={erros.cns}>
-                <input id="cns" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cns ? styles.inputError : ''}`} placeholder="000000000000000" maxLength={15} value={cnsAutorizador} onChange={e => { setCnsAutorizador(e.target.value.replace(/\D/g, '').slice(0, 15)); setErros(prev => ({ ...prev, cns: null })) }} />
-              </InputField>
-              <InputField label="CBO" sublabel="(6 dígitos)" id="cbo" error={erros.cbo}>
-                <input id="cbo" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cbo ? styles.inputError : ''}`} placeholder="000000" maxLength={6} value={cboProfissional} onChange={e => { setCboProfissional(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, cbo: null })) }} />
-              </InputField>
+            {/* Seletor de modo */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setModoProfissional('manual')}
+                style={{
+                  flex: 1, padding: '1rem', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
+                  border: modoProfissional === 'manual' ? '2px solid #008E7B' : '2px solid #e5e7eb',
+                  background: modoProfissional === 'manual' ? '#f0fdf9' : '#f9fafb',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <div style={{ fontWeight: '700', color: modoProfissional === 'manual' ? '#008E7B' : '#374151', marginBottom: '0.25rem' }}>✏️ Digitar Manualmente</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Preencha os dados do profissional autorizador nos campos abaixo.</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoProfissional('planilha')}
+                style={{
+                  flex: 1, padding: '1rem', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
+                  border: modoProfissional === 'planilha' ? '2px solid #008E7B' : '2px solid #e5e7eb',
+                  background: modoProfissional === 'planilha' ? '#f0fdf9' : '#f9fafb',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <div style={{ fontWeight: '700', color: modoProfissional === 'planilha' ? '#008E7B' : '#374151', marginBottom: '0.25rem' }}>📄 Usar Dados da Planilha</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Os dados do autorizador serão lidos por linha das colunas da planilha.</div>
+              </button>
             </div>
+
+            {/* Campos manuais */}
+            {modoProfissional === 'manual' && (
+              <div className={styles.fieldsRow}>
+                <InputField label="Nome completo" id="profissional" error={erros.profissional}>
+                  <input id="profissional" type="text" className={`${styles.input} ${erros.profissional ? styles.inputError : ''}`} placeholder="Ex.: DRA. MARIA SILVA" value={profissional} onChange={e => { setProfissional(e.target.value.toUpperCase()); setErros(prev => ({ ...prev, profissional: null })) }} />
+                </InputField>
+                <InputField label="CNS do autorizador" sublabel="(15 dígitos)" id="cns" error={erros.cns}>
+                  <input id="cns" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cns ? styles.inputError : ''}`} placeholder="000000000000000" maxLength={15} value={cnsAutorizador} onChange={e => { setCnsAutorizador(e.target.value.replace(/\D/g, '').slice(0, 15)); setErros(prev => ({ ...prev, cns: null })) }} />
+                </InputField>
+                <InputField label="CBO" sublabel="(6 dígitos)" id="cbo" error={erros.cbo}>
+                  <input id="cbo" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cbo ? styles.inputError : ''}`} placeholder="000000" maxLength={6} value={cboProfissional} onChange={e => { setCboProfissional(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, cbo: null })) }} />
+                </InputField>
+              </div>
+            )}
+
+            {/* Informação modo planilha */}
+            {modoProfissional === 'planilha' && (
+              <div style={{ background: '#f0fdf9', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1rem' }}>
+                <p style={{ margin: 0, color: '#166534', fontSize: '0.875rem' }}>
+                  ✓ Os dados do autorizador serão lidos por atendimento das colunas: <strong>NOME PROFISSIONAL AUTORIZADOR</strong>, <strong>CNS DO AUTORIZADOR</strong> e <strong>CBO DO AUTORIZADOR</strong>.
+                </p>
+              </div>
+            )}
           </section>
 
           <div className={styles.divider} />
