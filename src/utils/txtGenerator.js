@@ -176,11 +176,22 @@ const MAPA_PROCEDIMENTOS_13 = {
 const MAPA_CBO_PROCEDIMENTO = {
   '0902010018': '225120', // OCI Avaliação de Risco Cirúrgico
   '0902010026': '225120', // OCI Avaliação Cardiológica
+  '0903010011': '225270', // OCI Avaliação Diagnóstica em Ortopedia com Radiologia
   '0904010031': '225275', // OCI Avaliação Diagnóstica de Nasofaringe e Orofaringe
   '0905010019': '225265', // OCI Oftalmologia - 0 a 8 anos
   '0905010027': '225265', // OCI Avaliação de Estrabismo
   '0905010035': '225265', // OCI Oftalmologia - a partir de 9 anos
   '0905010043': '225265', // OCI Avaliação de Retinopatia Diabética
+}
+
+// Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
+// Normaliza cada código para 10 dígitos com zero à esquerda
+function parseProcedimentosSecundarios(valorColuna) {
+  const raw = String(valorColuna || '')
+  return raw
+    .split(',')
+    .map(s => normalizarProcedimento(s.trim()))
+    .filter(s => s.replace(/0/g, '').length > 0) // remove entradas vazias
 }
 
 // Normaliza o código do procedimento vindo do Excel (sem o zero à esquerda)
@@ -189,10 +200,18 @@ export function normalizarProcedimento(valorExcel) {
   return cleaned.padStart(10, '0')
 }
 
-// Retorna os procedimentos mapeados para as linhas 13 com base no proc. da linha 14
+// Retorna os procedimentos mapeados para as linhas 13 (estáticos ou dinâmicos)
 export function getProcedimentos13(valorExcel) {
   const procNorm = normalizarProcedimento(valorExcel)
   return MAPA_PROCEDIMENTOS_13[procNorm] || []
+}
+
+// Versão completa: inclui procedimentos dinâmicos (lidos da planilha) para 0903010011
+export function getProcedimentos13Completo(procPrincipal, linhaExcel) {
+  if (procPrincipal === '0903010011') {
+    return parseProcedimentosSecundarios(linhaExcel['PROCEDIMENTO_SECUNDARIO'])
+  }
+  return MAPA_PROCEDIMENTOS_13[procPrincipal] || []
 }
 
 // Gera UMA linha 13 para um procedimento específico com CBO e quantidade variáveis
@@ -217,13 +236,16 @@ function gerarUmaLinha13(codigoProc, quantidade, cbo, numeroApac, cabecalho) {
 
 /**
  * Retorna ARRAY de linhas 13 para cada atendimento na ordem:
- * 1. Proc. principal da OCI (da planilha)             → qty 1
- * 2. Código fixo 0301010072                           → qty = nº de procs mapeados
- * 3. Cada proc. mapeado do OCI                        → qty 1 cada
+ * 1. Proc. principal da OCI (da planilha)         → qty 1
+ * 2. Código fixo 0301010072                       → qty 1
+ * 3. Procs mapeados (fixos ou dinâmicos)          → qty 1 cada
+ *
+ * Para 0903010011 (Ortopedia), os procs da etapa 3 são lidos
+ * da coluna PROCEDIMENTO_SECUNDARIO da planilha.
  */
 export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
   const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
-  const procsMapeados = MAPA_PROCEDIMENTOS_13[procPrincipal] || []
+  const procsMapeados = getProcedimentos13Completo(procPrincipal, linhaExcel)
 
   // CBO fixo do procedimento; fallback para o CBO do autorizador caso não mapeado
   const cbo = MAPA_CBO_PROCEDIMENTO[procPrincipal] || cabecalho.cboAutorizador
