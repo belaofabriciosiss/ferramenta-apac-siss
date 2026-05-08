@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabaseClient'
 import { calcularDV, validarCNS } from '../utils/apacUtils'
-import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13, normalizarProcedimento, getExtensaoMes } from '../utils/txtGenerator'
+import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes } from '../utils/txtGenerator'
 import styles from '../App.module.css'
 
 function InputField({ label, sublabel, id, children, error }) {
@@ -168,7 +168,7 @@ export default function GerarAPAC() {
         }
 
         const proc14Norm  = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
-        const procs13     = getProcedimentos13(linhaExcel['PROCEDIMENTOS'])
+        const procs13     = getProcedimentos13Completo(proc14Norm, linhaExcel)
         const qtdMapeados = BigInt(procs13.length)
 
         somaControle += BigInt(proc14Norm) + 1n
