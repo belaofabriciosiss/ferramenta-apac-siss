@@ -244,15 +244,9 @@ function gerarUmaLinha13(codigoProc, quantidade, cbo, numeroApac, cabecalho) {
  * da coluna PROCEDIMENTO_SECUNDARIO da planilha.
  */
 export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
-  let procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
-
-  // Fallback para Ortopedia: se PROCEDIMENTOS está vazio mas há PROCEDIMENTO_SECUNDARIO,
-  // assume que é o proc 0903010011 (o único que usa coluna dinâmica)
-  const secundario = String(linhaExcel['PROCEDIMENTO_SECUNDARIO'] || '').trim()
-  if (!procPrincipal.replace(/0/g, '') && secundario) {
-    procPrincipal = '0903010011'
-  }
-
+  // procPrincipal vem sempre da coluna PROCEDIMENTOS; para Ortopedia os secundarios
+  // sao lidos de PROCEDIMENTO_SECUNDARIO via getProcedimentos13Completo.
+  const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
   const procsMapeados = getProcedimentos13Completo(procPrincipal, linhaExcel)
 
   // CBO fixo do procedimento; fallback para o CBO do autorizador caso não mapeado
