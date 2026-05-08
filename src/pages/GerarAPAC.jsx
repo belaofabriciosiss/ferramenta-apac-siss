@@ -5,6 +5,18 @@ import { calcularDV, validarCNS } from '../utils/apacUtils'
 import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes } from '../utils/txtGenerator'
 import styles from '../App.module.css'
 
+function getUltimosMeses() {
+  const meses = []
+  const hoje = new Date()
+  for (let i = 0; i < 4; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
+    const ano = d.getFullYear()
+    const mes = String(d.getMonth() + 1).padStart(2, '0')
+    meses.push(`${ano}${mes}`)
+  }
+  return meses
+}
+
 function InputField({ label, sublabel, id, children, error }) {
   return (
     <div className={styles.fieldGroup}>
@@ -23,8 +35,10 @@ export default function GerarAPAC() {
 
   const [planilha, setPlanilha] = useState(null)
   
-  const [competencia, setCompetencia] = useState('')
-  const [dataGeracao, setDataGeracao] = useState('')
+  const mesesDisponiveis = getUltimosMeses()
+  
+  const [competencia, setCompetencia] = useState(mesesDisponiveis[0])
+  const [dataGeracao, setDataGeracao] = useState(`${mesesDisponiveis[0]}01`)
   const [orgaoOrigem, setOrgaoOrigem] = useState('')
   const [cnes, setCnes] = useState('')
   const [cnpj, setCnpj] = useState('')
@@ -46,7 +60,36 @@ export default function GerarAPAC() {
 
   useEffect(() => {
     carregarFaixas()
+    const saved = localStorage.getItem('apac_form_data')
+    if (saved) {
+      try {
+        const data = JSON.parse(saved)
+        if (data.competencia && mesesDisponiveis.includes(data.competencia)) setCompetencia(data.competencia)
+        if (data.dataGeracao) setDataGeracao(data.dataGeracao)
+        if (data.orgaoOrigem) setOrgaoOrigem(data.orgaoOrigem)
+        if (data.cnes) setCnes(data.cnes)
+        if (data.cnpj) setCnpj(data.cnpj)
+        if (data.orgaoDestino) setOrgaoDestino(data.orgaoDestino)
+        if (data.indicadorDestino) setIndicadorDestino(data.indicadorDestino)
+        if (data.profissional) setProfissional(data.profissional)
+        if (data.cnsAutorizador) setCnsAutorizador(data.cnsAutorizador)
+        if (data.cboProfissional) setCboProfissional(data.cboProfissional)
+        if (data.modoNumeracao) setModoNumeracao(data.modoNumeracao)
+        if (data.modoProfissional) setModoProfissional(data.modoProfissional)
+      } catch (e) {
+        console.error('Erro ao ler localStorage', e)
+      }
+    }
   }, [])
+
+  useEffect(() => {
+    const dataToSave = {
+      competencia, dataGeracao, orgaoOrigem, cnes, cnpj,
+      orgaoDestino, indicadorDestino, profissional, cnsAutorizador,
+      cboProfissional, modoNumeracao, modoProfissional
+    }
+    localStorage.setItem('apac_form_data', JSON.stringify(dataToSave))
+  }, [competencia, dataGeracao, orgaoOrigem, cnes, cnpj, orgaoDestino, indicadorDestino, profissional, cnsAutorizador, cboProfissional, modoNumeracao, modoProfissional])
 
   async function carregarFaixas() {
     const { data } = await supabase
@@ -310,12 +353,26 @@ export default function GerarAPAC() {
 
             <div className={styles.fieldsRow}>
               <InputField label="Ano/Mês da Produção" sublabel="(AAAAMM)" id="competencia" error={erros.competencia}>
-                <input id="competencia" type="text" className={`${styles.input} ${styles.inputMono} ${erros.competencia ? styles.inputError : ''}`} placeholder="Ex: 202603" maxLength={6} value={competencia} onChange={e => { setCompetencia(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, competencia: null })) }} />
+                <select 
+                  id="competencia" 
+                  className={styles.input} 
+                  value={competencia} 
+                  onChange={e => { 
+                    const novaCompetencia = e.target.value;
+                    setCompetencia(novaCompetencia); 
+                    setDataGeracao(`${novaCompetencia}01`);
+                    setErros(prev => ({ ...prev, competencia: null, dataGeracao: null }));
+                  }}
+                >
+                  {mesesDisponiveis.map(mes => (
+                    <option key={mes} value={mes}>{mes}</option>
+                  ))}
+                </select>
               </InputField>
-              <InputField label="Data Geração Remessa" sublabel="(AAAAMMDD)" id="dataGen" error={erros.dataGeracao}>
-                <input id="dataGen" type="text" className={`${styles.input} ${styles.inputMono} ${erros.dataGeracao ? styles.inputError : ''}`} placeholder="Ex: 20260301" maxLength={8} value={dataGeracao} onChange={e => { setDataGeracao(e.target.value.replace(/\D/g, '').slice(0, 8)); setErros(prev => ({ ...prev, dataGeracao: null })) }} />
+              <InputField label="Data Geração Remessa" sublabel="(Primeiro dia do mês)" id="dataGen" error={erros.dataGeracao}>
+                <input id="dataGen" type="text" className={`${styles.input} ${styles.inputMono} ${erros.dataGeracao ? styles.inputError : ''}`} placeholder="Ex: 20260301" maxLength={8} value={dataGeracao} readOnly style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: '#6b7280' }} />
               </InputField>
-              <InputField label="CNES" sublabel="(6 dígitos numéricos)" id="cnes" error={erros.cnes}>
+              <InputField label="CNES" sublabel="(6 dígitos numéricos sem último dígito)" id="cnes" error={erros.cnes}>
                 <input id="cnes" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cnes ? styles.inputError : ''}`} placeholder="443604" maxLength={6} value={cnes} onChange={e => { setCnes(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, cnes: null })) }} />
               </InputField>
             </div>
