@@ -206,10 +206,10 @@ export function getProcedimentos13(valorExcel) {
   return MAPA_PROCEDIMENTOS_13[procNorm] || []
 }
 
-// Versão completa: inclui procedimentos dinâmicos (lidos da planilha) para 0903010011
+// Versão completa: inclui procedimentos dinâmicos EXCLUSIVAMENTE para 0903010011 (Ortopedia)
 export function getProcedimentos13Completo(procPrincipal, linhaExcel) {
   if (procPrincipal === '0903010011') {
-    return parseProcedimentosSecundarios(linhaExcel['PROCEDIMENTO_SECUNDARIO'])
+    return parseProcedimentosSecundarios(String(linhaExcel['PROCEDIMENTO_SECUNDARIO'] || '').trim())
   }
   return MAPA_PROCEDIMENTOS_13[procPrincipal] || []
 }
@@ -244,7 +244,15 @@ function gerarUmaLinha13(codigoProc, quantidade, cbo, numeroApac, cabecalho) {
  * da coluna PROCEDIMENTO_SECUNDARIO da planilha.
  */
 export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
-  const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
+  let procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
+
+  // Fallback para Ortopedia: se PROCEDIMENTOS está vazio mas há PROCEDIMENTO_SECUNDARIO,
+  // assume que é o proc 0903010011 (o único que usa coluna dinâmica)
+  const secundario = String(linhaExcel['PROCEDIMENTO_SECUNDARIO'] || '').trim()
+  if (!procPrincipal.replace(/0/g, '') && secundario) {
+    procPrincipal = '0903010011'
+  }
+
   const procsMapeados = getProcedimentos13Completo(procPrincipal, linhaExcel)
 
   // CBO fixo do procedimento; fallback para o CBO do autorizador caso não mapeado
@@ -252,7 +260,7 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
 
   const linhas = []
 
-  // 1. Linha com o procedimento principal (da planilha)
+  // 1. Linha com o procedimento principal
   linhas.push(gerarUmaLinha13(procPrincipal, 1, cbo, numeroApac, cabecalho))
 
   // 2. Linha fixa 0301010072 — quantidade sempre 1
