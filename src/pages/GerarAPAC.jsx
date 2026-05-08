@@ -167,7 +167,7 @@ export default function GerarAPAC() {
           numeroApac = raw.padStart(13, '0').slice(0, 13)
         }
 
-        const proc14Norm  = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
+        const proc14Norm  = normalizarProcedimento(linhaExcel['PROCEDIMENTO_PRINCIPAL'])
         const procs13     = getProcedimentos13Completo(proc14Norm, linhaExcel)
         const qtdMapeados = BigInt(procs13.length)
 
