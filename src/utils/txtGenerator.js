@@ -111,7 +111,7 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += formatarDataAAAAMMDD(linhaExcel['DATA DE NASCIMENTO 8 DIGITOS']) // DATA DE NASCIMENTO (AAAAMMDD)
   linha += padText(linhaExcel['SEXO DO PACIENTE'], 1) // SEXO
   linha += padText(linhaExcel['NOME DO MÉDICO RESPONSÁVEL'], 30) // MÉDICO RESPONSÁVEL
-  linha += padNum(linhaExcel['PROCEDIMENTOS'], 10) // PROCEDIMENTO PRINCIPAL
+  linha += padNum(linhaExcel['PROCEDIMENTO_PRINCIPAL'], 10) // PROCEDIMENTO PRINCIPAL
   linha += padNum(linhaExcel['CÓDIGO DO MOTIVO DE SAÍDA/PERMANENCIA - PORTARIA Nº 719, DE 28 DEZEMBRO DE 2007'], 2) // MOTIVO SAÍDA
   linha += padText(linhaExcel['DATA (AAMMDD) DA OCORRÊNCIA NO CASO DE ALTA, TRANSFERENCIA OU ÓBITO'], 8) // DATA SAÍDA
   linha += padText(cabecalho.nomeAutorizador, 30) // PROFISSIONAL AUTORIZADOR DO FORMULÁRIO (30)
@@ -244,9 +244,9 @@ function gerarUmaLinha13(codigoProc, quantidade, cbo, numeroApac, cabecalho) {
  * da coluna PROCEDIMENTO_SECUNDARIO da planilha.
  */
 export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
-  // procPrincipal vem sempre da coluna PROCEDIMENTOS; para Ortopedia os secundarios
-  // sao lidos de PROCEDIMENTO_SECUNDARIO via getProcedimentos13Completo.
-  const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
+  // procPrincipal vem sempre da coluna PROCEDIMENTO_PRINCIPAL da planilha.
+  // Para Ortopedia (0903010011), os procedimentos secundarios vem de PROCEDIMENTO_SECUNDARIO.
+  const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTO_PRINCIPAL'])
   const procsMapeados = getProcedimentos13Completo(procPrincipal, linhaExcel)
 
   // CBO fixo do procedimento; fallback para o CBO do autorizador caso não mapeado
