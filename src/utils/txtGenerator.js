@@ -1,518 +1,267 @@
-import { useState, useRef, useEffect } from 'react'
-import * as XLSX from 'xlsx'
-import { supabase } from '../lib/supabaseClient'
-import { calcularDV, validarCNS } from '../utils/apacUtils'
-import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes } from '../utils/txtGenerator'
-import styles from '../App.module.css'
-
-function InputField({ label, sublabel, id, children, error }) {
-  return (
-    <div className={styles.fieldGroup}>
-      <label className={styles.fieldLabel} htmlFor={id}>
-        {label}
-        {sublabel && <span className={styles.fieldSublabel}>{sublabel}</span>}
-      </label>
-      {children}
-      {error && <span className={styles.fieldError}>{error}</span>}
-    </div>
-  )
+// Remove acentos e caracteres especiais (Á→A, Ã→A, Ó→O, ç→c, etc.)
+function removerAcentos(texto) {
+  return String(texto || '')
+    .normalize('NFD')               // decompõe em letra + marca diacrítica
+    .replace(/[\u0300-\u036f]/g, '') // remove as marcas diacríticas
 }
 
-export default function GerarAPAC() {
-  const fileInputRef = useRef(null)
-
-  const [planilha, setPlanilha] = useState(null)
-  
-  const [competencia, setCompetencia] = useState('')
-  const [dataGeracao, setDataGeracao] = useState('')
-  const [orgaoOrigem, setOrgaoOrigem] = useState('')
-  const [cnes, setCnes] = useState('')
-  const [cnpj, setCnpj] = useState('')
-  const [orgaoDestino, setOrgaoDestino] = useState('')
-  const [indicadorDestino, setIndicadorDestino] = useState('M')
-
-  const [profissional, setProfissional] = useState('')
-  const [cnsAutorizador, setCnsAutorizador] = useState('')
-  const [cboProfissional, setCboProfissional] = useState('')
-  
-  const [faixas, setFaixas] = useState([])
-  const [faixaSelecionadaId, setFaixaSelecionadaId] = useState('')
-  const [modoNumeracao, setModoNumeracao] = useState('faixa') // 'faixa' | 'planilha'
-  const [modoProfissional, setModoProfissional] = useState('manual') // 'manual' | 'planilha'
-
-  const [erros, setErros] = useState({})
-  const [mensagem, setMensagem] = useState(null)
-  const [gerando, setGerando] = useState(false)
-
-  useEffect(() => {
-    carregarFaixas()
-  }, [])
-
-  async function carregarFaixas() {
-    const { data } = await supabase
-      .from('faixas_apac')
-      .select('*')
-      .eq('ativo', true)
-      .order('criado_em', { ascending: false })
-      
-    if (data) setFaixas(data)
+export function padText(texto, tamanho) {
+  if (!texto) texto = ''
+  const t = removerAcentos(String(texto))
+  if (t.length > tamanho) {
+    return t.substring(0, tamanho)
   }
+  return t.padEnd(tamanho, ' ')
+}
 
-  function handleArquivoChange(e) {
-    const file = e.target.files[0]
-    if (!file) return
-    setMensagem(null)
-    setErros(prev => ({ ...prev, planilha: null }))
-
-    const reader = new FileReader()
-    reader.onload = (evt) => {
-      try {
-        const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true, raw: false })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const dados = XLSX.utils.sheet_to_json(ws, { defval: '' })
-
-        if (dados.length === 0) {
-          setErros(prev => ({ ...prev, planilha: 'A planilha está vazia ou sem dados.' }))
-          return
-        }
-        setPlanilha({ nome: file.name, dados, qtdLinhas: dados.length })
-      } catch {
-        setErros(prev => ({ ...prev, planilha: 'Erro ao ler o arquivo. Verifique se é um .xlsx válido.' }))
-      }
-    }
-    reader.readAsArrayBuffer(file)
+export function padNum(numero, tamanho) {
+  if (!numero) numero = ''
+  let cleaned = String(numero).replace(/\D/g, '')
+  if (cleaned.length > tamanho) {
+    cleaned = cleaned.substring(0, tamanho)
   }
+  return cleaned.padStart(tamanho, '0')
+}
 
-  function validarFormulario() {
-    const novosErros = {}
-
-    if (!planilha) novosErros.planilha = 'Importe a planilha de atendimentos.'
-    
-    if (!competencia || competencia.length !== 6) novosErros.competencia = 'Obrigatório 6 dígitos (AAAAMM).'
-    if (!dataGeracao || dataGeracao.length !== 8) novosErros.dataGeracao = 'Obrigatório 8 dígitos (AAAAMMDD).'
-    if (!orgaoOrigem.trim()) novosErros.orgaoOrigem = 'Informe o Estabelecimento Origem.'
-    if (!cnes || cnes.length !== 6) novosErros.cnes = 'Obrigatório 6 dígitos numéricos.'
-    if (!cnpj || cnpj.length !== 14) novosErros.cnpj = 'Obrigatório 14 dígitos numéricos.'
-    if (!orgaoDestino.trim()) novosErros.orgaoDestino = 'Informe a Secretaria / Órgão Destino.'
-
-    if (modoProfissional === 'manual') {
-      if (!profissional.trim()) novosErros.profissional = 'Informe o nome.'
-      if (!cnsAutorizador.trim()) {
-        novosErros.cns = 'Informe o CNS.'
-      } else if (!validarCNS(cnsAutorizador)) {
-        novosErros.cns = 'Exatamente 15 dígitos numéricos.'
-      }
-      if (!cboProfissional.trim()) {
-        novosErros.cbo = 'Informe o CBO.'
-      } else if (!/^\d{6}$/.test(cboProfissional)) {
-        novosErros.cbo = 'Exatamente 6 dígitos numéricos.'
-      }
-    }
-
-    if (modoNumeracao === 'faixa') {
-      if (!faixaSelecionadaId) {
-        novosErros.faixa = 'Selecione um lote de numeração.'
-      } else {
-        const faixa = faixas.find(f => f.id === faixaSelecionadaId)
-        if (planilha && faixa.numeros_restantes < planilha.qtdLinhas) {
-          novosErros.faixa = `O lote tem apenas ${faixa.numeros_restantes} números disponíveis. A planilha tem ${planilha.qtdLinhas} linhas.`
-        }
-      }
-    }
-
-    if (modoNumeracao === 'planilha' && planilha) {
-      const semNumero = planilha.dados.every(row => {
-        const raw = String(row['NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)'] || '').replace(/\D/g, '')
-        return raw.length === 0
-      })
-      if (semNumero) {
-        novosErros.apacPlanilha = 'Nenhum número APAC encontrado na planilha. Verifique a coluna "NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)" e corrija antes de exportar.'
-      }
-    }
-
-    setErros(novosErros)
-    return Object.keys(novosErros).length === 0
+// Formata data para AAAAMMDD, tratando tanto strings quanto objetos Date do Excel
+function formatarDataAAAAMMDD(valor) {
+  if (!valor) return '00000000'
+  // Se o Excel converteu para objeto Date
+  if (valor instanceof Date) {
+    const y = valor.getFullYear()
+    const m = String(valor.getMonth() + 1).padStart(2, '0')
+    const d = String(valor.getDate()).padStart(2, '0')
+    return `${y}${m}${d}`
   }
+  // Se vier como string ou número, pega só os dígitos
+  const s = String(valor).replace(/\D/g, '')
+  return s.padStart(8, '0').slice(0, 8)
+}
 
-  async function handleGerar() {
-    setMensagem(null)
-    if (!validarFormulario()) return
+// Retorna Mês com 3 letras (Ex: "202501" -> "JAN")
+export function getExtensaoMes(aaaamm) {
+  const mes = String(aaaamm).substring(4, 6)
+  const meses = {
+    '01': 'JAN', '02': 'FEV', '03': 'MAR', '04': 'ABR',
+    '05': 'MAI', '06': 'JUN', '07': 'JUL', '08': 'AGO',
+    '09': 'SET', '10': 'OUT', '11': 'NOV', '12': 'DEZ'
+  }
+  return meses[mes] || 'TXT'
+}
 
-    setGerando(true)
+export function gerarLinha01(cabecalho, qtdRegistros, valorControle) {
+  let linha = ''
+  linha += '01' // 2 (Indicador)
+  linha += '#APAC' // 5 (Tipo)
+  linha += padNum(cabecalho.competencia, 6) // 6 (AAAAMM)
+  linha += padNum(qtdRegistros, 6) // 6 (Qtd APACs - Qtd Atendimentos)
+  linha += padNum(valorControle, 4) // 4 (Campo Controle Mín 1111 - Máx 2221)
+  linha += padText(cabecalho.orgaoOrigem, 30) // 30 (Nome Origem)
+  linha += padText(cabecalho.cnes, 6) // 6 (Sigla/CNES)
+  linha += padNum(cabecalho.cnpj, 14) // 14 (CNPJ do Prestador)
+  linha += padText(cabecalho.orgaoDestino, 40) // 40 (Nome Destino)
+  linha += padText(cabecalho.indicadorDestino, 1) // 1 (M ou E)
+  linha += padNum(cabecalho.dataGeracao, 8) // 8 (AAAAMMDD)
+  linha += padText('Versao 03.11', 15) // 15 (Versão Livre)
+  return linha
+}
 
-    try {
-      const faixa = modoNumeracao === 'faixa' ? faixas.find(f => f.id === faixaSelecionadaId) : null
-      let curBase = faixa ? BigInt(faixa.proximo_numero) : 0n
+/**
+ * Regra CPF x Cartão SUS:
+ * - Prioridade para CPF. Se existir, preenche CPF e deixa Cartão SUS em branco.
+ * - Se não houver CPF, preenche Cartão SUS e deixa CPF em branco.
+ */
+function resolverDocumentoPaciente(linhaExcel) {
+  const cpf = String(linhaExcel['CPF DO INDIVIDUO'] || '').replace(/\D/g, '')
+  const cns = String(linhaExcel['CART\u00c3O SUS DO PACIENTE'] || '').replace(/\D/g, '')
 
-      const cabecalho = {
-        competencia, orgaoOrigem, cnes, cnpj, orgaoDestino, indicadorDestino, dataGeracao,
-        nomeAutorizador: profissional.trim(),
-        cnsAutorizador: cnsAutorizador.replace(/\s/g, ''),
-        cboAutorizador: cboProfissional
-      }
-
-      let somaControle = BigInt(0)
-      const atendimentos = []
-
-      for (const linhaExcel of planilha.dados) {
-        let numeroApac
-        if (modoNumeracao === 'faixa') {
-          const base12 = String(curBase).padStart(12, '0')
-          const dv = calcularDV(base12)
-          numeroApac = base12 + dv
-          curBase++
-        } else {
-          // Lê diretamente da planilha e normaliza para 13 dígitos sem hífen
-          const raw = String(linhaExcel['NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)'] || '').replace(/\D/g, '')
-          numeroApac = raw.padStart(13, '0').slice(0, 13)
-        }
-
-        const proc14Norm  = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
-        const procs13     = getProcedimentos13Completo(proc14Norm, linhaExcel)
-        const qtdMapeados = BigInt(procs13.length)
-
-        somaControle += BigInt(proc14Norm) + 1n
-        somaControle += 301010072n + qtdMapeados
-        for (const proc of procs13) somaControle += BigInt(normalizarProcedimento(proc)) + 1n
-        somaControle += BigInt(numeroApac)
-
-        // Cabecalho base (campos fixos)
-        // Campos do profissional são sobrescritos por linha se modoProfissional='planilha'
-        const cabecalhoLinha = modoProfissional === 'planilha' ? {
-          ...cabecalho,
-          nomeAutorizador: String(linhaExcel['NOME PROFISSIONAL AUTORIZADOR'] || '').toUpperCase(),
-          cnsAutorizador:  String(linhaExcel['CNS DO AUTORIZADOR'] || '').replace(/\D/g, ''),
-          cboAutorizador:  String(linhaExcel['CBO DO AUTORIZADOR'] || '').replace(/\D/g, '')
-        } : cabecalho
-
-        atendimentos.push({ linhaExcel, numeroApac, cabecalhoLinha })
-      }
-
-      const qtdRegistros = atendimentos.length
-      const valorControle = Number((somaControle % 1111n) + 1111n)
-
-      let txt = ''
-      txt += gerarLinha01(cabecalho, qtdRegistros, valorControle) + '\r\n'
-
-      for (const item of atendimentos) {
-        txt += gerarLinha14(item.linhaExcel, item.numeroApac, item.cabecalhoLinha) + '\r\n'
-        txt += gerarLinha06(item.linhaExcel, item.numeroApac, item.cabecalhoLinha) + '\r\n'
-        const linhas13 = gerarLinhas13(item.linhaExcel, item.numeroApac, item.cabecalhoLinha)
-        for (const l13 of linhas13) {
-          txt += l13 + '\r\n'
-        }
-      }
-
-      const nomeArquivo = `AP${cnes}.${getExtensaoMes(competencia)}`
-      
-      const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = nomeArquivo
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-
-      // Atualiza banco apenas no modo faixa
-      if (modoNumeracao === 'faixa' && faixa) {
-        const novoRestantes = faixa.numeros_restantes - qtdRegistros
-        await supabase.from('faixas_apac').update({
-          proximo_numero: String(curBase),
-          numeros_restantes: novoRestantes,
-          ativo: novoRestantes > 0
-        }).eq('id', faixa.id)
-        carregarFaixas()
-        if (novoRestantes <= 0) setFaixaSelecionadaId('')
-      }
-
-      setMensagem({
-        tipo: 'success',
-        texto: `Arquivo "${nomeArquivo}" exportado com sucesso! ${qtdRegistros} registro(s) processado(s).`
-      })
-      
-    } catch (err) {
-      setMensagem({ tipo: 'error', texto: `Erro ao gerar arquivo TXT: ${err.message}` })
-    } finally {
-      setGerando(false)
+  if (cpf.length > 0) {
+    return {
+      cartaoSus: ''.padStart(15, ' '), // branco
+      cpf: cpf.padStart(11, '0').slice(0, 11)
+    }
+  } else {
+    return {
+      cartaoSus: cns.padStart(15, '0').slice(0, 15),
+      cpf: ''.padStart(11, ' ') // branco
     }
   }
+}
 
-  return (
-    <div className={styles.page} style={{ marginLeft: '260px', width: 'auto', minHeight: '100vh' }}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.headerText}>
-            <h1 className={styles.headerTitle}>Geração do Arquivo APAC</h1>
-            <p className={styles.headerSub}>Preencha os dados e escolha um lote ativo para gerar o arquivo TXT de exportação.</p>
-          </div>
-        </div>
-      </header>
+export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
+  let linha = ''
+  linha += '14' // 2 (Identificador de linha corpo APAC)
+  linha += padNum(cabecalho.competencia, 6) // ANO/MÊS PRODUÇÃO
+  linha += padNum(numeroApac, 13) // NÚMERO APAC (12 + 1 DV)
+  linha += padNum(linhaExcel['CODIGO DA UNIDADE DE FEDERAÇÃO (IBGE)'], 2) // IBGE
+  linha += padNum(linhaExcel['CÓDIGO DA PRESTADORA DE SERVIÇOS (7 DÍGITOS)'], 7) // CNES C/ DV (7 dígitos)
+  linha += padNum(linhaExcel['DATA (YYYYMMDD) DO PROCESSAMENTO DA APAC II (8 DÍGITOS)'], 8) // PROCESSAMENTO
+  linha += padNum(linhaExcel['DATA (YYYYMMDD) INICIAL DA VALIDADE DA APAC (8 DÍGITOS)'], 8) // VALIDADE INICIAL
+  linha += padNum(linhaExcel['DATA (YYYYMMDD) FINAL DA VALIDADE DA APAC (8 DÍGITOS)'], 8) // VALIDADE FINAL
+  linha += padNum(linhaExcel['TIPO DE ATENDIMENTO'], 2) // TIPO DE ATENDIMENTO
+  linha += padText(linhaExcel['TIPO DE APAC'], 1) // TIPO DE APAC
+  linha += padText(linhaExcel['NOME PACIENTE'], 30) // NOME PACIENTE
+  linha += padText(linhaExcel['NOME DA MÃE'], 30) // NOME DA MÃE
+  linha += padText(linhaExcel['IDENTIFICAÇÃO DO LOGRADOURO DE RESIDÊNCIA DO PACIENTE'], 30) // LOGRADOURO RESIDENCIA
+  const _numResidencia = String(linhaExcel['NÚMERO CORRESPONDENTE A RESIDÊNCIA DO PACIENTE'] || '').trim()
+  linha += padText(_numResidencia || 'S/N', 5) // NUMERO (S/N quando vazio)
+  linha += padText(linhaExcel['COMPLEMENTO DO LOGRADOURO DO PACIENTE'], 10) // COMPLEMENTO
+  linha += padNum(linhaExcel['CEP (8 DÍGITOS)'], 8) // CEP
+  linha += padText(linhaExcel['CÓDIGO DO MUNICIPIO (CÓD. IBGE)'], 7) // MUNICIPIO (pode ser " " caso nao tenha DV)
+  linha += formatarDataAAAAMMDD(linhaExcel['DATA DE NASCIMENTO 8 DIGITOS']) // DATA DE NASCIMENTO (AAAAMMDD)
+  linha += padText(linhaExcel['SEXO DO PACIENTE'], 1) // SEXO
+  linha += padText(linhaExcel['NOME DO MÉDICO RESPONSÁVEL'], 30) // MÉDICO RESPONSÁVEL
+  linha += padNum(linhaExcel['PROCEDIMENTOS'], 10) // PROCEDIMENTO PRINCIPAL
+  linha += padNum(linhaExcel['CÓDIGO DO MOTIVO DE SAÍDA/PERMANENCIA - PORTARIA Nº 719, DE 28 DEZEMBRO DE 2007'], 2) // MOTIVO SAÍDA
+  linha += padText(linhaExcel['DATA (AAMMDD) DA OCORRÊNCIA NO CASO DE ALTA, TRANSFERENCIA OU ÓBITO'], 8) // DATA SAÍDA
+  linha += padText(cabecalho.nomeAutorizador, 30) // PROFISSIONAL AUTORIZADOR DO FORMULÁRIO (30)
+  const docPaciente = resolverDocumentoPaciente(linhaExcel)
+  linha += docPaciente.cartaoSus // CARTÃO SUS (15) - branco se tiver CPF
+  linha += padNum(linhaExcel['CNS MÉDICO RESPONSÁVEL'], 15) // CNS MÉDICO
+  linha += padNum(cabecalho.cnsAutorizador, 15) // CNS AUTORIZADOR DO FORMULÁRIO (15)
+  linha += padText(linhaExcel['CID CAUSAS ASSOCIADAS'], 4) // CID
+  linha += padText(linhaExcel['NUMERO DO PRONTUÁRIO'], 10) // PRONTUÁRIO
+  linha += padText(linhaExcel['CÓDIGO CNES DO SOLICITANTE (7 DÍGITOS)'], 7) // CNES SOLICITANTE
+  linha += padText(linhaExcel['DATA DA SOLICITAÇÃO (YYYMMDD) (8 DÍGITOS)'], 8) // DATA SOLICITAÇÃO
+  linha += padText(linhaExcel['DATA DA AUTORIZAÇÃO'], 8) // DATA AUTORIZAÇÃO
+  linha += padText(linhaExcel['CÓDIGO DO EMISSOR'], 10) // CÓDIGO DO EMISSOR
+  linha += padNum(linhaExcel['CARATÉR DO ATENDIMENTO'], 2) // CARÁTER DO ATENDIMENTO
+  linha += padText(linhaExcel['NUMERO DA APAC ANTERIOR (OPCIONAL)'], 13) // NUMERO ANTERIOR
+  linha += padNum(linhaExcel['RAÇA/COR'], 2) // RAÇA/COR
+  linha += padText(linhaExcel['NOME DO RESPONSÁVEL'], 30) // NOME DO RESPONSÁVEL
+  linha += padNum(linhaExcel['CÓDIGO DA NACIONALIDADE'], 3) // NACIONALIDADE
+  linha += padText(linhaExcel['CÓDIGO DA ETNIA'], 4) // ETNIA
+  linha += padNum(linhaExcel['CÓDIGO DO LOGRADOURO'], 3) // CÓDIGO LOGRADOURO
+  linha += padText(linhaExcel['BAIRRO DO PACIENTE'], 30) // BAIRRO
+  linha += padNum(linhaExcel['DDD DO TELEFONE DE CONTATO'], 2) // DDD
+  linha += padNum(linhaExcel['TELEFONE DE CONTATO'], 9) // TELEFONE
+  linha += padText(linhaExcel['EMAIL DO PACIENTE'], 40) // EMAIL
+  linha += padNum(linhaExcel['CNS MÉDICO EXECUTANTE DO PROCEDIMENTO'], 15) // CNS MÉDICO EXECUTANTE
+  linha += docPaciente.cpf // CPF DO INDIVIDUO (11) - branco se tiver Cartão SUS
+  linha += padText(linhaExcel['IDENTIFICAÇÃO NACIONAL DE EQUIPE'], 10) // EQUIPE
+  linha += padText(linhaExcel['PESSOA EM SITUAÇÃO DE RUA'], 1) // PESSOA EM SITUAÇÃO DE RUA (N ou S ou branco) - Ops, truncou na msg usuário "PESSOA EM SITUAÇÃO DE 81" -> vou usar padText
+  return linha
+}
 
-      <main className={styles.main} style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <div className={styles.card}>
-          
-          {/* Seção 1 — Planilha */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionNumber}>01</span>
-              <div>
-                <h2 className={styles.sectionTitle}>Planilha de Atendimentos</h2>
-                <p className={styles.sectionDesc}>Importe o arquivo exportado do sistema SISS (.xlsx)</p>
-              </div>
-            </div>
+export function gerarLinha06(linhaExcel, numeroApac, cabecalho) {
+  let linha = ''
+  linha += '06' // Indicador 06
+  linha += padNum(cabecalho.competencia, 6) // ANO/MÊS PRODUÇÃO
+  linha += padNum(numeroApac, 13) // NÚMERO APAC
+  linha += padText(linhaExcel['CID CAUSAS ASSOCIADAS'], 4) // CID PRINCIPAL (mesmo da causa associada no exemplo do usuário)
+  linha += padText('', 4) // CID SECUNDARIO ESPAÇO EM BRANCO (4)
+  linha += padText('', 8) // Data da identificação patológica ESPAÇO EM BRANCO (8)
+  return linha
+}
 
-            <InputField label="Arquivo de atendimentos" id="arquivo" error={erros.planilha}>
-              <div
-                className={`${styles.dropzone} ${planilha ? styles.dropzoneSuccess : ''} ${erros.planilha ? styles.dropzoneError : ''}`}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => {
-                  e.preventDefault()
-                  const file = e.dataTransfer.files[0]
-                  if (file) handleArquivoChange({ target: { files: [file] } })
-                }}
-              >
-                <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className={styles.fileInputHidden} onChange={handleArquivoChange} />
-                {planilha ? (
-                  <div className={styles.dropzoneContent}>
-                    <span className={styles.dropzoneIcon}>✓</span>
-                    <div>
-                      <p className={styles.dropzoneName}>{planilha.nome}</p>
-                      <p className={styles.dropzoneInfo}>{planilha.qtdLinhas} registro(s) encontrado(s)</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className={styles.dropzoneContent}>
-                    <span className={styles.dropzoneIconIdle}>⬆</span>
-                    <div>
-                      <p className={styles.dropzonePrompt}>Clique para selecionar ou arraste aqui</p>
-                      <p className={styles.dropzoneHint}>Formato aceito: .xlsx</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </InputField>
-          </section>
+// Mapeamento: procedimento da linha 14 → lista de procedimentos para as linhas 13
+const MAPA_PROCEDIMENTOS_13 = {
+  // Cirurgia / Risco Cirúrgico
+  '0902010018': ['0211020036'],
+  // Cardiologia
+  '0902010026': ['0211020036'],
+  // ORL - Nasofaringe e Orofaringe
+  '0904010031': ['0209040041', '0209040025'],
+  // Oftalmologia - 0 a 8 anos
+  '0905010019': ['0211060232', '0211060127', '0211060020'],
+  // Oftalmologia - Estrabismo
+  '0905010027': ['0211060232', '0211060127', '0211060259', '0211060020'],
+  // Oftalmologia - a partir de 9 anos
+  '0905010035': ['0211060259', '0211060127', '0211060020'],
+  // Oftalmologia - Retinopatia Diabética
+  '0905010043': ['0211060127', '0211060178', '0211060020', '0211060259'],
+}
 
-          <div className={styles.divider} />
+// CBO fixo por procedimento principal (todas as linhas 13 do atendimento usam o mesmo CBO)
+const MAPA_CBO_PROCEDIMENTO = {
+  '0902010018': '225120', // OCI Avaliação de Risco Cirúrgico
+  '0902010026': '225120', // OCI Avaliação Cardiológica
+  '0903010011': '225270', // OCI Avaliação Diagnóstica em Ortopedia com Radiologia
+  '0904010031': '225275', // OCI Avaliação Diagnóstica de Nasofaringe e Orofaringe
+  '0905010019': '225265', // OCI Oftalmologia - 0 a 8 anos
+  '0905010027': '225265', // OCI Avaliação de Estrabismo
+  '0905010035': '225265', // OCI Oftalmologia - a partir de 9 anos
+  '0905010043': '225265', // OCI Avaliação de Retinopatia Diabética
+}
 
-          {/* Seção 2 — Cabeçalho */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionNumber}>02</span>
-              <div>
-                <h2 className={styles.sectionTitle}>Dados do Cabeçalho DATASUS</h2>
-                <p className={styles.sectionDesc}>Informações fixas exportadas no início do arquivo.</p>
-              </div>
-            </div>
+// Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
+// Normaliza cada código para 10 dígitos com zero à esquerda
+function parseProcedimentosSecundarios(valorColuna) {
+  const raw = String(valorColuna || '')
+  return raw
+    .split(',')
+    .map(s => normalizarProcedimento(s.trim()))
+    .filter(s => s.replace(/0/g, '').length > 0) // remove entradas vazias
+}
 
-            <div className={styles.fieldsRow}>
-              <InputField label="Ano/Mês da Produção" sublabel="(AAAAMM)" id="competencia" error={erros.competencia}>
-                <input id="competencia" type="text" className={`${styles.input} ${styles.inputMono} ${erros.competencia ? styles.inputError : ''}`} placeholder="Ex: 202603" maxLength={6} value={competencia} onChange={e => { setCompetencia(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, competencia: null })) }} />
-              </InputField>
-              <InputField label="Data Geração Remessa" sublabel="(AAAAMMDD)" id="dataGen" error={erros.dataGeracao}>
-                <input id="dataGen" type="text" className={`${styles.input} ${styles.inputMono} ${erros.dataGeracao ? styles.inputError : ''}`} placeholder="Ex: 20260301" maxLength={8} value={dataGeracao} onChange={e => { setDataGeracao(e.target.value.replace(/\D/g, '').slice(0, 8)); setErros(prev => ({ ...prev, dataGeracao: null })) }} />
-              </InputField>
-              <InputField label="CNES" sublabel="(6 dígitos numéricos)" id="cnes" error={erros.cnes}>
-                <input id="cnes" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cnes ? styles.inputError : ''}`} placeholder="443604" maxLength={6} value={cnes} onChange={e => { setCnes(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, cnes: null })) }} />
-              </InputField>
-            </div>
+// Normaliza o código do procedimento vindo do Excel (sem o zero à esquerda)
+export function normalizarProcedimento(valorExcel) {
+  const cleaned = String(valorExcel || '').replace(/\D/g, '')
+  return cleaned.padStart(10, '0')
+}
 
-            <div className={styles.fieldsRow} style={{ marginTop: '1rem' }}>
-              <InputField label="Estabelecimento Origem" id="orgOrigem" error={erros.orgaoOrigem}>
-                <input id="orgOrigem" type="text" className={`${styles.input} ${erros.orgaoOrigem ? styles.inputError : ''}`} placeholder="POUPA TEMPO DA SAUDE" value={orgaoOrigem} onChange={e => { setOrgaoOrigem(e.target.value.toUpperCase()); setErros(prev => ({ ...prev, orgaoOrigem: null })) }} />
-              </InputField>
-              <InputField label="CNPJ do Prestador" sublabel="(14 dígitos)" id="cnpj" error={erros.cnpj}>
-                <input id="cnpj" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cnpj ? styles.inputError : ''}`} placeholder="Somente números" maxLength={14} value={cnpj} onChange={e => { setCnpj(e.target.value.replace(/\D/g, '').slice(0, 14)); setErros(prev => ({ ...prev, cnpj: null })) }} />
-              </InputField>
-            </div>
+// Retorna os procedimentos mapeados para as linhas 13 (estáticos ou dinâmicos)
+export function getProcedimentos13(valorExcel) {
+  const procNorm = normalizarProcedimento(valorExcel)
+  return MAPA_PROCEDIMENTOS_13[procNorm] || []
+}
 
-            <div className={styles.fieldsRow} style={{ marginTop: '1rem' }}>
-              <InputField label="Secretaria de Saúde" sublabel="(Órgão Destino)" id="orgDestino" error={erros.orgaoDestino}>
-                <input id="orgDestino" type="text" className={`${styles.input} ${erros.orgaoDestino ? styles.inputError : ''}`} placeholder="SECRETARIA MUNICIPAL DE SAUDE" value={orgaoDestino} onChange={e => { setOrgaoDestino(e.target.value.toUpperCase()); setErros(prev => ({ ...prev, orgaoDestino: null })) }} />
-              </InputField>
-              <InputField label="Órgão Destino (M/E)" id="indDestino">
-                <select className={styles.input} value={indicadorDestino} onChange={e => setIndicadorDestino(e.target.value)}>
-                  <option value="M">M - Municipal</option>
-                  <option value="E">E - Estadual</option>
-                </select>
-              </InputField>
-            </div>
-          </section>
+// Versão completa: inclui procedimentos dinâmicos (lidos da planilha) para 0903010011
+export function getProcedimentos13Completo(procPrincipal, linhaExcel) {
+  if (procPrincipal === '0903010011') {
+    return parseProcedimentosSecundarios(linhaExcel['PROCEDIMENTO_SECUNDARIO'])
+  }
+  return MAPA_PROCEDIMENTOS_13[procPrincipal] || []
+}
 
-          <div className={styles.divider} />
+// Gera UMA linha 13 para um procedimento específico com CBO e quantidade variáveis
+function gerarUmaLinha13(codigoProc, quantidade, cbo, numeroApac, cabecalho) {
+  let linha = ''
+  linha += '13'               // Indicador 13
+  linha += padNum(cabecalho.competencia, 6)  // ANO/MÊS PRODUÇÃO
+  linha += padNum(numeroApac, 13)            // NÚMERO APAC
+  linha += padNum(codigoProc, 10)            // CÓDIGO DO PROCEDIMENTO
+  linha += padNum(cbo, 6)                    // CBO fixo do procedimento
+  linha += padNum(String(quantidade), 7)     // QUANTIDADE
+  linha += padText('', 14)                   // CNPJ Cessão
+  linha += padText('', 6)                    // Nota Fiscal
+  linha += padText('', 4)                    // CID Principal
+  linha += padText('', 4)                    // CID Secundário
+  linha += padText('', 3)                    // Código do Serviço
+  linha += padText('', 3)                    // Código da Classificação
+  linha += padText('', 8)                    // Sequencia da Equipe
+  linha += padText('', 4)                    // Área da Equipe
+  return linha
+}
 
-          {/* Seção 3 — Profissional */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionNumber}>03</span>
-              <div>
-                <h2 className={styles.sectionTitle}>Profissional Autorizador</h2>
-                <p className={styles.sectionDesc}>Dados do profissional responsável pela autorização</p>
-              </div>
-            </div>
+/**
+ * Retorna ARRAY de linhas 13 para cada atendimento na ordem:
+ * 1. Proc. principal da OCI (da planilha)         → qty 1
+ * 2. Código fixo 0301010072                       → qty 1
+ * 3. Procs mapeados (fixos ou dinâmicos)          → qty 1 cada
+ *
+ * Para 0903010011 (Ortopedia), os procs da etapa 3 são lidos
+ * da coluna PROCEDIMENTO_SECUNDARIO da planilha.
+ */
+export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
+  const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTOS'])
+  const procsMapeados = getProcedimentos13Completo(procPrincipal, linhaExcel)
 
-            {/* Seletor de modo */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-              <button
-                type="button"
-                onClick={() => setModoProfissional('manual')}
-                style={{
-                  flex: 1, padding: '1rem', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
-                  border: modoProfissional === 'manual' ? '2px solid #008E7B' : '2px solid #e5e7eb',
-                  background: modoProfissional === 'manual' ? '#f0fdf9' : '#f9fafb',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <div style={{ fontWeight: '700', color: modoProfissional === 'manual' ? '#008E7B' : '#374151', marginBottom: '0.25rem' }}>✏️ Digitar Manualmente</div>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Preencha os dados do profissional autorizador nos campos abaixo.</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setModoProfissional('planilha')}
-                style={{
-                  flex: 1, padding: '1rem', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
-                  border: modoProfissional === 'planilha' ? '2px solid #008E7B' : '2px solid #e5e7eb',
-                  background: modoProfissional === 'planilha' ? '#f0fdf9' : '#f9fafb',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <div style={{ fontWeight: '700', color: modoProfissional === 'planilha' ? '#008E7B' : '#374151', marginBottom: '0.25rem' }}>📄 Usar Dados da Planilha</div>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Os dados do autorizador serão lidos por linha das colunas da planilha.</div>
-              </button>
-            </div>
+  // CBO fixo do procedimento; fallback para o CBO do autorizador caso não mapeado
+  const cbo = MAPA_CBO_PROCEDIMENTO[procPrincipal] || cabecalho.cboAutorizador
 
-            {/* Campos manuais */}
-            {modoProfissional === 'manual' && (
-              <div className={styles.fieldsRow}>
-                <InputField label="Nome completo" id="profissional" error={erros.profissional}>
-                  <input id="profissional" type="text" className={`${styles.input} ${erros.profissional ? styles.inputError : ''}`} placeholder="Ex.: DRA. MARIA SILVA" value={profissional} onChange={e => { setProfissional(e.target.value.toUpperCase()); setErros(prev => ({ ...prev, profissional: null })) }} />
-                </InputField>
-                <InputField label="CNS do autorizador" sublabel="(15 dígitos)" id="cns" error={erros.cns}>
-                  <input id="cns" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cns ? styles.inputError : ''}`} placeholder="000000000000000" maxLength={15} value={cnsAutorizador} onChange={e => { setCnsAutorizador(e.target.value.replace(/\D/g, '').slice(0, 15)); setErros(prev => ({ ...prev, cns: null })) }} />
-                </InputField>
-                <InputField label="CBO" sublabel="(6 dígitos)" id="cbo" error={erros.cbo}>
-                  <input id="cbo" type="text" className={`${styles.input} ${styles.inputMono} ${erros.cbo ? styles.inputError : ''}`} placeholder="000000" maxLength={6} value={cboProfissional} onChange={e => { setCboProfissional(e.target.value.replace(/\D/g, '').slice(0, 6)); setErros(prev => ({ ...prev, cbo: null })) }} />
-                </InputField>
-              </div>
-            )}
+  const linhas = []
 
-            {/* Informação modo planilha */}
-            {modoProfissional === 'planilha' && (
-              <div style={{ background: '#f0fdf9', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1rem' }}>
-                <p style={{ margin: 0, color: '#166534', fontSize: '0.875rem' }}>
-                  ✓ Os dados do autorizador serão lidos por atendimento das colunas: <strong>NOME PROFISSIONAL AUTORIZADOR</strong>, <strong>CNS DO AUTORIZADOR</strong> e <strong>CBO DO AUTORIZADOR</strong>.
-                </p>
-              </div>
-            )}
-          </section>
+  // 1. Linha com o procedimento principal (da planilha)
+  linhas.push(gerarUmaLinha13(procPrincipal, 1, cbo, numeroApac, cabecalho))
 
-          <div className={styles.divider} />
+  // 2. Linha fixa 0301010072 — quantidade sempre 1
+  linhas.push(gerarUmaLinha13('0301010072', 1, cbo, numeroApac, cabecalho))
 
-          {/* Seção 4 — Numeração APAC */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionNumber}>04</span>
-              <div>
-                <h2 className={styles.sectionTitle}>Origem da Numeração APAC</h2>
-                <p className={styles.sectionDesc}>Escolha como os números de APAC serão atribuídos neste arquivo.</p>
-              </div>
-            </div>
+  // 3. Linhas com cada procedimento mapeado para o OCI
+  for (const proc of procsMapeados) {
+    linhas.push(gerarUmaLinha13(proc, 1, cbo, numeroApac, cabecalho))
+  }
 
-            {/* Seletor de modo */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-              <button
-                type="button"
-                onClick={() => { setModoNumeracao('faixa'); setErros(prev => ({ ...prev, faixa: null })) }}
-                style={{
-                  flex: 1, padding: '1rem', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
-                  border: modoNumeracao === 'faixa' ? '2px solid #008E7B' : '2px solid #e5e7eb',
-                  background: modoNumeracao === 'faixa' ? '#f0fdf9' : '#f9fafb',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <div style={{ fontWeight: '700', color: modoNumeracao === 'faixa' ? '#008E7B' : '#374151', marginBottom: '0.25rem' }}>📋 Lote Cadastrado</div>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Usar uma faixa de numeração previamente cadastrada no sistema.</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setModoNumeracao('planilha'); setErros(prev => ({ ...prev, faixa: null })) }}
-                style={{
-                  flex: 1, padding: '1rem', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
-                  border: modoNumeracao === 'planilha' ? '2px solid #008E7B' : '2px solid #e5e7eb',
-                  background: modoNumeracao === 'planilha' ? '#f0fdf9' : '#f9fafb',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <div style={{ fontWeight: '700', color: modoNumeracao === 'planilha' ? '#008E7B' : '#374151', marginBottom: '0.25rem' }}>📄 Numeração da Planilha</div>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Os números de APAC já estão preenchidos na coluna da planilha.</div>
-              </button>
-            </div>
-
-            {/* Conteúdo condicional */}
-            {modoNumeracao === 'faixa' && (
-              <>
-                <InputField label="Selecione o Lote" id="lote" error={erros.faixa}>
-                  <select
-                    className={`${styles.input} ${erros.faixa ? styles.inputError : ''}`}
-                    value={faixaSelecionadaId}
-                    onChange={e => { setFaixaSelecionadaId(e.target.value); setErros(prev => ({ ...prev, faixa: null })) }}
-                  >
-                    <option value="">-- Selecione uma faixa disponível --</option>
-                    {faixas.map(f => (
-                      <option key={f.id} value={f.id}>
-                        {f.lote} {f.estabelecimento ? `(${f.estabelecimento})` : ''} - Restam {f.numeros_restantes}
-                      </option>
-                    ))}
-                  </select>
-                </InputField>
-                {faixas.length === 0 && (
-                  <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>Nenhum lote ativo. Cadastre uma faixa no menu lateral.</p>
-                )}
-                {erros.faixa && (
-                  <div className={styles.alertBox} style={{ marginTop: '1rem' }}>
-                    <span className={styles.alertIcon}>⚠</span>
-                    {erros.faixa}
-                  </div>
-                )}
-              </>
-            )}
-
-            {modoNumeracao === 'planilha' && (
-              <div>
-                <div style={{ background: '#f0fdf9', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1rem' }}>
-                  <p style={{ margin: 0, color: '#166534', fontSize: '0.875rem' }}>
-                    ✓ Os números de APAC serão lidos diretamente da coluna <strong>NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)</strong> da planilha. Nenhum lote será debitado.
-                  </p>
-                </div>
-                {erros.apacPlanilha && (
-                  <div className={styles.alertBox} style={{ marginTop: '0.75rem' }}>
-                    <span className={styles.alertIcon}>⚠</span>
-                    {erros.apacPlanilha}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          <div className={styles.divider} />
-
-          {mensagem && (
-            <div className={`${styles.mensagem} ${styles[`mensagem_${mensagem.tipo}`]}`}>
-              <span className={styles.mensagemIcon}>{mensagem.tipo === 'success' ? '✓' : '✕'}</span>
-              {mensagem.texto}
-            </div>
-          )}
-
-          <div className={styles.actions}>
-            <button className={`${styles.btnGerar} ${gerando ? styles.btnGerando : ''}`} onClick={handleGerar} disabled={gerando || (modoNumeracao === 'faixa' && faixas.length === 0)}>
-              {gerando ? (<><span className={styles.spinner} /> Gerando Arquivo...</>) : (<><span className={styles.btnIcon}>⬇</span> Exportar .TXT (SIA)</>)}
-            </button>
-          </div>
-        </div>
-      </main>
-    </div>
-  )
+  return linhas
 }
