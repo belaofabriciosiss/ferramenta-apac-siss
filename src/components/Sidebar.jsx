@@ -32,6 +32,9 @@ export default function Sidebar({ setPage, currentPage, onLogout }) {
       </nav>
 
       <div className={styles.footer}>
+        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center', marginBottom: '0.75rem', fontWeight: '500' }}>
+          Versão 1.0.0
+        </div>
         <button className={styles.logoutBtn} onClick={handleLogout}>
           <span className={styles.icon}>🚪</span>
           Sair
