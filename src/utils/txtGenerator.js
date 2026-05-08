@@ -122,8 +122,8 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += padText(linhaExcel['CID CAUSAS ASSOCIADAS'], 4) // CID
   linha += padText(linhaExcel['NUMERO DO PRONTUÁRIO'], 10) // PRONTUÁRIO
   linha += padText(linhaExcel['CÓDIGO CNES DO SOLICITANTE (7 DÍGITOS)'], 7) // CNES SOLICITANTE
-  linha += padNum(linhaExcel['DATA DA SOLICITAÇÃO (YYYYMMDD) (8 DÍGITOS)'], 8) // DATA SOLICITAÇÃO
-  linha += padNum(linhaExcel['DATA DA AUTORIZAÇÃO (YYYYMMDD)'], 8) // DATA AUTORIZAÇÃO
+  linha += formatarDataAAAAMMDD(linhaExcel['DATA DA SOLICITAÇÃO (YYYYMMDD) (8 DÍGITOS)']) // DATA SOLICITAÇÃO
+  linha += formatarDataAAAAMMDD(linhaExcel['DATA DA AUTORIZAÇÃO (YYYYMMDD)']) // DATA AUTORIZAÇÃO
   linha += padText(linhaExcel['CÓDIGO DO EMISSOR'], 10) // CÓDIGO DO EMISSOR
   linha += padNum(linhaExcel['CARATÉR DO ATENDIMENTO'], 2) // CARÁTER DO ATENDIMENTO
   linha += padText(linhaExcel['NUMERO DA APAC ANTERIOR (OPCIONAL)'], 13) // NUMERO ANTERIOR
