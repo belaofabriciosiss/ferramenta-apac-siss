@@ -113,7 +113,7 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += padText(linhaExcel['NOME DO MÉDICO RESPONSÁVEL'], 30) // MÉDICO RESPONSÁVEL
   linha += padNum(linhaExcel['PROCEDIMENTO_PRINCIPAL'], 10) // PROCEDIMENTO PRINCIPAL
   linha += padNum(linhaExcel['CÓDIGO DO MOTIVO DE SAÍDA/PERMANENCIA - PORTARIA Nº 719, DE 28 DEZEMBRO DE 2007'], 2) // MOTIVO SAÍDA
-  linha += padText(linhaExcel['DATA (AAMMDD) DA OCORRÊNCIA NO CASO DE ALTA, TRANSFERENCIA OU ÓBITO'], 8) // DATA SAÍDA
+  linha += padText(linhaExcel['DATA (AAAAMMDD) DA OCORRÊNCIA NO CASO DE ALTA, TRANSFERENCIA OU ÓBITO'], 8) // DATA SAÍDA
   linha += padText(cabecalho.nomeAutorizador, 30) // PROFISSIONAL AUTORIZADOR DO FORMULÁRIO (30)
   const docPaciente = resolverDocumentoPaciente(linhaExcel)
   linha += docPaciente.cartaoSus // CARTÃO SUS (15) - branco se tiver CPF
