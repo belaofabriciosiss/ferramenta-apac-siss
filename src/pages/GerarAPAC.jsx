@@ -215,13 +215,17 @@ export default function GerarAPAC() {
           numeroApac = raw.padStart(13, '0').slice(0, 13)
         }
 
-        const proc14Norm  = normalizarProcedimento(linhaExcel['PROCEDIMENTO_PRINCIPAL'])
-        const procs13     = getProcedimentos13Completo(proc14Norm, linhaExcel)
-        const qtdMapeados = BigInt(procs13.length)
+        const proc14Norm = normalizarProcedimento(linhaExcel['PROCEDIMENTO_PRINCIPAL'])
+        const procs13    = getProcedimentos13Completo(proc14Norm, linhaExcel)
 
+        // Regra: Σ(código tipo 13) + Σ(quantidade tipo 13) + número APAC
+        // Linha 13 - proc principal: código + qty 1
         somaControle += BigInt(proc14Norm) + 1n
-        somaControle += 301010072n + qtdMapeados
+        // Linha 13 - proc fixo 0301010072: código + qty 1
+        somaControle += 301010072n + 1n
+        // Linhas 13 - procs mapeados/dinâmicos: código + qty 1 cada
         for (const proc of procs13) somaControle += BigInt(normalizarProcedimento(proc)) + 1n
+        // Número da APAC (linha 06)
         somaControle += BigInt(numeroApac)
 
         // Cabecalho base (campos fixos)
