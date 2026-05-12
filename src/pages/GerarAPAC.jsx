@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabaseClient'
 import { calcularDV, validarCNS } from '../utils/apacUtils'
 import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes } from '../utils/txtGenerator'
+import { EMISSORES } from '../constants/emissores'
 import styles from '../App.module.css'
 
 function getUltimosMeses() {
@@ -44,6 +45,7 @@ export default function GerarAPAC() {
   const [cnpj, setCnpj] = useState('')
   const [orgaoDestino, setOrgaoDestino] = useState('')
   const [indicadorDestino, setIndicadorDestino] = useState('M')
+  const [codigoEmissor, setCodigoEmissor] = useState(EMISSORES[0]?.codigo || '')
 
   const [profissional, setProfissional] = useState('')
   const [cnsAutorizador, setCnsAutorizador] = useState('')
@@ -71,6 +73,7 @@ export default function GerarAPAC() {
         if (data.cnpj) setCnpj(data.cnpj)
         if (data.orgaoDestino) setOrgaoDestino(data.orgaoDestino)
         if (data.indicadorDestino) setIndicadorDestino(data.indicadorDestino)
+        if (data.codigoEmissor) setCodigoEmissor(data.codigoEmissor)
         if (data.profissional) setProfissional(data.profissional)
         if (data.cnsAutorizador) setCnsAutorizador(data.cnsAutorizador)
         if (data.cboProfissional) setCboProfissional(data.cboProfissional)
@@ -85,11 +88,11 @@ export default function GerarAPAC() {
   useEffect(() => {
     const dataToSave = {
       competencia, dataGeracao, orgaoOrigem, cnes, cnpj,
-      orgaoDestino, indicadorDestino, profissional, cnsAutorizador,
+      orgaoDestino, indicadorDestino, codigoEmissor, profissional, cnsAutorizador,
       cboProfissional, modoNumeracao, modoProfissional
     }
     localStorage.setItem('apac_form_data', JSON.stringify(dataToSave))
-  }, [competencia, dataGeracao, orgaoOrigem, cnes, cnpj, orgaoDestino, indicadorDestino, profissional, cnsAutorizador, cboProfissional, modoNumeracao, modoProfissional])
+  }, [competencia, dataGeracao, orgaoOrigem, cnes, cnpj, orgaoDestino, indicadorDestino, codigoEmissor, profissional, cnsAutorizador, cboProfissional, modoNumeracao, modoProfissional])
 
   async function carregarFaixas() {
     const { data } = await supabase
@@ -137,6 +140,7 @@ export default function GerarAPAC() {
     if (!cnes || cnes.length !== 6) novosErros.cnes = 'Obrigatório 6 dígitos numéricos.'
     if (!cnpj || cnpj.length !== 14) novosErros.cnpj = 'Obrigatório 14 dígitos numéricos.'
     if (!orgaoDestino.trim()) novosErros.orgaoDestino = 'Informe a Secretaria / Órgão Destino.'
+    if (!codigoEmissor) novosErros.codigoEmissor = 'Selecione o Código do Emissor.'
 
     if (modoProfissional === 'manual') {
       if (!profissional.trim()) novosErros.profissional = 'Informe o nome.'
@@ -189,6 +193,7 @@ export default function GerarAPAC() {
 
       const cabecalho = {
         competencia, orgaoOrigem, cnes, cnpj, orgaoDestino, indicadorDestino, dataGeracao,
+        codigoEmissor,
         nomeAutorizador: profissional.trim(),
         cnsAutorizador: cnsAutorizador.replace(/\s/g, ''),
         cboAutorizador: cboProfissional
@@ -394,6 +399,18 @@ export default function GerarAPAC() {
                 <select className={styles.input} value={indicadorDestino} onChange={e => setIndicadorDestino(e.target.value)}>
                   <option value="M">M - Municipal</option>
                   <option value="E">E - Estadual</option>
+                </select>
+              </InputField>
+              <InputField label="Código do Emissor" id="codigoEmissor" error={erros.codigoEmissor}>
+                <select
+                  id="codigoEmissor"
+                  className={`${styles.input} ${erros.codigoEmissor ? styles.inputError : ''}`}
+                  value={codigoEmissor}
+                  onChange={e => { setCodigoEmissor(e.target.value); setErros(prev => ({ ...prev, codigoEmissor: null })) }}
+                >
+                  {EMISSORES.map(e => (
+                    <option key={e.codigo} value={e.codigo}>{e.municipio} - {e.codigo}</option>
+                  ))}
                 </select>
               </InputField>
             </div>
