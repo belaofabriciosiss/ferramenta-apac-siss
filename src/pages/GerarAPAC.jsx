@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { calcularDV, validarCNS } from '../utils/apacUtils'
 import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes } from '../utils/txtGenerator'
 import { executarConsistencia } from '../utils/consistenciaValidator'
+import { gerarScriptExportarId } from '../utils/exportarIdGenerator'
 import { EMISSORES } from '../constants/emissores'
 import styles from '../App.module.css'
 
@@ -61,6 +62,7 @@ export default function GerarAPAC() {
   const [mensagem, setMensagem] = useState(null)
   const [gerando, setGerando] = useState(false)
   const [consistindo, setConsistindo] = useState(false)
+  const [exportandoId, setExportandoId] = useState(false)
 
   useEffect(() => {
     carregarFaixas()
@@ -312,6 +314,25 @@ export default function GerarAPAC() {
     }
   }
 
+  function handleExportarId() {
+    if (!planilha) return
+    setExportandoId(true)
+    try {
+      const { sql, total } = gerarScriptExportarId(planilha.dados)
+      const blob = new Blob([sql], { type: 'text/plain;charset=utf-8' })
+      const url  = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `script_update_${planilha.nome.replace(/\.xlsx$/i, '')}.txt`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } finally {
+      setExportandoId(false)
+    }
+  }
+
   return (
     <div className={styles.page} style={{ marginLeft: '260px', width: 'auto', minHeight: '100vh' }}>
       <header className={styles.header}>
@@ -369,9 +390,24 @@ export default function GerarAPAC() {
             </InputField>
           </section>
 
-          {/* Botão de Consistência */}
+          {/* Botões de ação da planilha */}
           {planilha && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 0.5rem 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '0 0 0.5rem 0' }}>
+              <button
+                type="button"
+                onClick={handleExportarId}
+                disabled={exportandoId}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.65rem 1.4rem', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '600', fontSize: '0.875rem', border: '2px solid #3b82f6',
+                  background: exportandoId ? '#e5e7eb' : '#eff6ff', color: '#3b82f6',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>🗂️</span>
+                {exportandoId ? 'Gerando...' : 'EXPORTAR ID'}
+              </button>
               <button
                 type="button"
                 onClick={handleConsistencia}
