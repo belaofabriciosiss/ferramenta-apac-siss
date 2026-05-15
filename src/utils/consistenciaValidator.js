@@ -8,14 +8,23 @@ const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 function normalizarCPF(v)  { return String(v || '').replace(/\D/g, '') }
 function normalizarProc(v)  { return String(v || '').replace(/\D/g, '').padStart(10, '0') }
 
-// Pré-processamento: detecta pares (CPF, PROCEDIMENTO_PRINCIPAL) duplicados
+// Identifica o paciente usando CPF (preferêncial) → Cartão SUS → CD_RECEPCAO
+function resolverIdPaciente(row) {
+  const cpf = normalizarCPF(row['CPF DO INDIVIDUO'])
+  if (cpf) return cpf
+  const cns = String(row['CART\u00c3O SUS DO PACIENTE'] || '').replace(/\D/g, '')
+  if (cns) return cns
+  return String(row['CD_RECEPCAO'] || '').trim()
+}
+
+// Pré-processamento: detecta pares (ID_PACIENTE, PROCEDIMENTO_PRINCIPAL) duplicados
 function buildContexto(dados) {
   const contPares = {}
   for (const row of dados) {
-    const cpf  = normalizarCPF(row['CPF DO INDIVIDUO'])
-    const proc = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
-    if (!cpf || !proc.replace(/0/g, '')) continue
-    const key = `${cpf}||${proc}`
+    const idPaciente = resolverIdPaciente(row)
+    const proc       = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
+    if (!idPaciente || !proc.replace(/0/g, '')) continue
+    const key = `${idPaciente}||${proc}`
     contPares[key] = (contPares[key] || 0) + 1
   }
   const paresdup = new Set(Object.keys(contPares).filter(k => contPares[k] > 1))
@@ -40,10 +49,10 @@ function validarProfissionaisDistintos(row) {
 }
 
 function validarDuplicidade(row, ctx) {
-  const cpf  = normalizarCPF(row['CPF DO INDIVIDUO'])
-  const proc = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
-  if (!cpf || !proc.replace(/0/g, '')) return null
-  if (ctx.paresdup.has(`${cpf}||${proc}`)) return 'PACIENTE E PROCEDIMENTO EM DUPLICIDADE'
+  const idPaciente = resolverIdPaciente(row)
+  const proc       = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
+  if (!idPaciente || !proc.replace(/0/g, '')) return null
+  if (ctx.paresdup.has(`${idPaciente}||${proc}`)) return 'PACIENTE E PROCEDIMENTO EM DUPLICIDADE'
   return null
 }
 
@@ -63,8 +72,8 @@ export function executarConsistencia(dados, nomeArquivo) {
 
   for (const row of dados) {
     const cdRecepcao = String(row['CD_RECEPCAO']      || '').trim()
-    const cpf        = String(row['CPF DO INDIVIDUO'] || '').trim()
-    const chave      = cpf || cdRecepcao || JSON.stringify(row)
+    const cpf        = normalizarCPF(row['CPF DO INDIVIDUO'])
+    const chave      = resolverIdPaciente(row) || JSON.stringify(row)
 
     const errosLinha = REGRAS.map(r => r.fn(row, ctx)).filter(Boolean)
     if (errosLinha.length === 0) continue
