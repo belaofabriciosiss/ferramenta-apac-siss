@@ -1,119 +1,135 @@
 /**
  * consistenciaValidator.js
- *
- * Módulo de consistência da planilha de atendimentos APAC.
- * Para adicionar novas regras, crie uma nova função validarXxx(row)
- * que retorna null (sem erro) ou uma string com a descrição do erro,
- * e inclua-a no array REGRAS abaixo.
+ * Para adicionar nova regra por linha: crie validarXxx(row, ctx) e inclua em REGRAS.
  */
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// ─── Regras individuais ──────────────────────────────────────────────────────
+// Pré-processamento: detecta pares (CPF, PROCEDIMENTO_PRINCIPAL) duplicados
+function buildContexto(dados) {
+  const contPares = {}
+  for (const row of dados) {
+    const cpf  = String(row['CPF DO INDIVIDUO']      || '').trim()
+    const proc = String(row['PROCEDIMENTO_PRINCIPAL'] || '').trim()
+    if (!cpf || !proc) continue
+    const key = `${cpf}||${proc}`
+    contPares[key] = (contPares[key] || 0) + 1
+  }
+  const paresdup = new Set(Object.keys(contPares).filter(k => contPares[k] > 1))
+  return { paresdup }
+}
+
+// ─── Regras ───────────────────────────────────────────────────────────────────
 
 function validarEmail(row) {
   const email = String(row['EMAIL DO PACIENTE'] || '').trim()
-  if (email === '') return null // campo vazio não é validado aqui
+  if (email === '') return null
   if (!REGEX_EMAIL.test(email)) return 'EMAIL DO PACIENTE INVÁLIDO'
   return null
 }
 
 function validarProfissionaisDistintos(row) {
-  const autorizador  = String(row['NOME PROFISSIONAL AUTORIZADOR'] || '').trim().toUpperCase()
-  const responsavel  = String(row['NOME DO MÉDICO RESPONSÁVEL']    || '').trim().toUpperCase()
-  if (autorizador === '' || responsavel === '') return null
-  if (autorizador === responsavel)
-    return 'PROFISSIONAL AUTORIZADOR E PROFISSIONAL RESPONSÁVEL PELO ATENDIMENTO NÃO DEVEM SER O MESMO'
+  const aut = String(row['NOME PROFISSIONAL AUTORIZADOR'] || '').trim().toUpperCase()
+  const res = String(row['NOME DO MÉDICO RESPONSÁVEL']    || '').trim().toUpperCase()
+  if (!aut || !res) return null
+  if (aut === res) return 'PROFISSIONAL AUTORIZADOR E PROFISSIONAL RESPONSÁVEL PELO ATENDIMENTO NÃO DEVEM SER O MESMO'
   return null
 }
 
-// ─── Registro de regras ───────────────────────────────────────────────────────
-// Cada entrada: { descricao, fn }
-// Para adicionar nova regra: inclua um novo objeto aqui.
+function validarDuplicidade(row, ctx) {
+  const cpf  = String(row['CPF DO INDIVIDUO']      || '').trim()
+  const proc = String(row['PROCEDIMENTO_PRINCIPAL'] || '').trim()
+  if (!cpf || !proc) return null
+  if (ctx.paresdup.has(`${cpf}||${proc}`)) return 'PACIENTE E PROCEDIMENTO EM DUPLICIDADE'
+  return null
+}
+
 const REGRAS = [
-  { descricao: 'EMAIL DO PACIENTE INVÁLIDO',                                                                          fn: validarEmail },
-  { descricao: 'PROFISSIONAL AUTORIZADOR E PROFISSIONAL RESPONSÁVEL PELO ATENDIMENTO NÃO DEVEM SER O MESMO',         fn: validarProfissionaisDistintos },
+  { fn: validarEmail },
+  { fn: validarProfissionaisDistintos },
+  { fn: validarDuplicidade },
 ]
 
-// ─── Runner principal ─────────────────────────────────────────────────────────
+// ─── Runner ───────────────────────────────────────────────────────────────────
 
-/**
- * Executa todas as regras sobre a planilha e retorna o conteúdo .txt do relatório.
- * @param {Array<Object>} dados  - Array de linhas (objetos) lidos do xlsx
- * @param {string}        nomeArquivo - Nome do arquivo importado
- * @returns {string} Conteúdo do relatório em texto puro
- */
 export function executarConsistencia(dados, nomeArquivo) {
-  // Coleta erros por linha
-  const erros = [] // { cdRecepcao, cpf, descricao }
+  const ctx = buildContexto(dados)
+
+  // Agrupa erros por CPF (chave única por paciente)
+  const porPaciente = new Map()
 
   for (const row of dados) {
-    const cdRecepcao = String(row['CD_RECEPCAO'] || '').trim()
+    const cdRecepcao = String(row['CD_RECEPCAO']      || '').trim()
     const cpf        = String(row['CPF DO INDIVIDUO'] || '').trim()
+    const chave      = cpf || cdRecepcao || JSON.stringify(row)
 
-    for (const regra of REGRAS) {
-      const resultado = regra.fn(row)
-      if (resultado !== null) {
-        erros.push({ cdRecepcao, cpf, descricao: resultado })
-      }
+    const errosLinha = REGRAS.map(r => r.fn(row, ctx)).filter(Boolean)
+    if (errosLinha.length === 0) continue
+
+    if (!porPaciente.has(chave)) {
+      porPaciente.set(chave, { cdRecepcao, cpf, erros: new Set() })
     }
+    errosLinha.forEach(e => porPaciente.get(chave).erros.add(e))
   }
 
-  // Totalizador por tipo de erro
+  // Totalizador por tipo
   const contadores = {}
-  for (const e of erros) {
-    contadores[e.descricao] = (contadores[e.descricao] || 0) + 1
+  for (const { erros } of porPaciente.values()) {
+    for (const e of erros) contadores[e] = (contadores[e] || 0) + 1
   }
+  const totalErros = Object.values(contadores).reduce((a, b) => a + b, 0)
 
-  // ─── Montagem do relatório ────────────────────────────────────────────────
   const agora = new Date()
   const dataHora = agora.toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit'
   })
 
-  const linhas = []
+  const L = []
+  const SEP  = '='.repeat(80)
+  const SEP2 = '-'.repeat(80)
 
-  linhas.push('='.repeat(80))
-  linhas.push('RELATÓRIO DE CONSISTÊNCIA - APAC')
-  linhas.push(`Data/Hora: ${dataHora}`)
-  linhas.push(`Arquivo  : ${nomeArquivo}`)
-  linhas.push(`Registros analisados: ${dados.length}`)
-  linhas.push('='.repeat(80))
-  linhas.push('')
+  L.push(SEP)
+  L.push('RELATÓRIO DE CONSISTÊNCIA - APAC')
+  L.push(`Data/Hora: ${dataHora}`)
+  L.push(`Arquivo  : ${nomeArquivo}`)
+  L.push(`Registros analisados: ${dados.length}`)
+  L.push(SEP)
+  L.push('')
+  L.push('RESUMO')
+  L.push('-'.repeat(40))
+  L.push(`Total de erros encontrados: ${totalErros}`)
+  L.push('')
 
-  linhas.push('RESUMO')
-  linhas.push('-'.repeat(40))
-  linhas.push(`Total de erros encontrados: ${erros.length}`)
-  linhas.push('')
-
-  if (erros.length === 0) {
-    linhas.push('  Nenhum erro encontrado. Planilha consistente!')
+  if (totalErros === 0) {
+    L.push('  Nenhum erro encontrado. Planilha consistente!')
   } else {
     for (const [desc, qtd] of Object.entries(contadores)) {
-      linhas.push(`  [${qtd}] ${desc}`)
+      L.push(`  [${qtd}] ${desc}`)
     }
   }
 
-  linhas.push('')
-  linhas.push('='.repeat(80))
-  linhas.push('DETALHAMENTO')
-  linhas.push('-'.repeat(40))
+  L.push('')
+  L.push(SEP)
+  L.push('DETALHAMENTO (agrupado por paciente)')
+  L.push('-'.repeat(40))
 
-  if (erros.length === 0) {
-    linhas.push('  Sem erros para detalhar.')
+  if (totalErros === 0) {
+    L.push('  Sem erros para detalhar.')
   } else {
-    for (const e of erros) {
-      const ident = [e.cdRecepcao, e.cpf].filter(Boolean).join(' - ')
-      linhas.push(`${ident}`)
-      linhas.push(`  ${e.descricao}`)
-      linhas.push('')
+    let primeiro = true
+    for (const { cdRecepcao, cpf, erros } of porPaciente.values()) {
+      if (!primeiro) L.push(SEP2)
+      primeiro = false
+      L.push([cdRecepcao, cpf].filter(Boolean).join(' - '))
+      for (const e of erros) L.push(`  - ${e}`)
     }
   }
 
-  linhas.push('='.repeat(80))
-  linhas.push(`FIM DO RELATÓRIO - ${erros.length} erro(s) encontrado(s)`)
-  linhas.push('='.repeat(80))
+  L.push('')
+  L.push(SEP)
+  L.push(`FIM DO RELATÓRIO - ${totalErros} erro(s) encontrado(s)`)
+  L.push(SEP)
 
-  return linhas.join('\r\n')
+  return L.join('\r\n')
 }
