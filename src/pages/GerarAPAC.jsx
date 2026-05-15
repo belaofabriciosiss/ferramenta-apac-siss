@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabaseClient'
 import { calcularDV, validarCNS } from '../utils/apacUtils'
 import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes } from '../utils/txtGenerator'
+import { executarConsistencia } from '../utils/consistenciaValidator'
 import { EMISSORES } from '../constants/emissores'
 import styles from '../App.module.css'
 
@@ -59,6 +60,7 @@ export default function GerarAPAC() {
   const [erros, setErros] = useState({})
   const [mensagem, setMensagem] = useState(null)
   const [gerando, setGerando] = useState(false)
+  const [consistindo, setConsistindo] = useState(false)
 
   useEffect(() => {
     carregarFaixas()
@@ -291,6 +293,25 @@ export default function GerarAPAC() {
     }
   }
 
+  function handleConsistencia() {
+    if (!planilha) return
+    setConsistindo(true)
+    try {
+      const relatorio = executarConsistencia(planilha.dados, planilha.nome)
+      const blob = new Blob([relatorio], { type: 'text/plain;charset=utf-8' })
+      const url  = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `consistencia_${planilha.nome.replace(/\.xlsx$/i, '')}.txt`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } finally {
+      setConsistindo(false)
+    }
+  }
+
   return (
     <div className={styles.page} style={{ marginLeft: '260px', width: 'auto', minHeight: '100vh' }}>
       <header className={styles.header}>
@@ -347,6 +368,27 @@ export default function GerarAPAC() {
               </div>
             </InputField>
           </section>
+
+          {/* Botão de Consistência */}
+          {planilha && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 0.5rem 0' }}>
+              <button
+                type="button"
+                onClick={handleConsistencia}
+                disabled={consistindo}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.65rem 1.4rem', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '600', fontSize: '0.875rem', border: '2px solid #008E7B',
+                  background: consistindo ? '#e5e7eb' : '#f0fdf9', color: '#008E7B',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>🔍</span>
+                {consistindo ? 'Analisando...' : 'REALIZAR CONSISTÊNCIA'}
+              </button>
+            </div>
+          )}
 
           <div className={styles.divider} />
 
