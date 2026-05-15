@@ -5,13 +5,16 @@
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+function normalizarCPF(v)  { return String(v || '').replace(/\D/g, '') }
+function normalizarProc(v)  { return String(v || '').replace(/\D/g, '').padStart(10, '0') }
+
 // Pré-processamento: detecta pares (CPF, PROCEDIMENTO_PRINCIPAL) duplicados
 function buildContexto(dados) {
   const contPares = {}
   for (const row of dados) {
-    const cpf  = String(row['CPF DO INDIVIDUO']      || '').trim()
-    const proc = String(row['PROCEDIMENTO_PRINCIPAL'] || '').trim()
-    if (!cpf || !proc) continue
+    const cpf  = normalizarCPF(row['CPF DO INDIVIDUO'])
+    const proc = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
+    if (!cpf || !proc.replace(/0/g, '')) continue
     const key = `${cpf}||${proc}`
     contPares[key] = (contPares[key] || 0) + 1
   }
@@ -37,9 +40,9 @@ function validarProfissionaisDistintos(row) {
 }
 
 function validarDuplicidade(row, ctx) {
-  const cpf  = String(row['CPF DO INDIVIDUO']      || '').trim()
-  const proc = String(row['PROCEDIMENTO_PRINCIPAL'] || '').trim()
-  if (!cpf || !proc) return null
+  const cpf  = normalizarCPF(row['CPF DO INDIVIDUO'])
+  const proc = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
+  if (!cpf || !proc.replace(/0/g, '')) return null
   if (ctx.paresdup.has(`${cpf}||${proc}`)) return 'PACIENTE E PROCEDIMENTO EM DUPLICIDADE'
   return null
 }
