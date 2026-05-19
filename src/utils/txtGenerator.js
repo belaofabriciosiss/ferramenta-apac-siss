@@ -170,7 +170,19 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0905010035': ['0211060259', '0211060127', '0211060020'],
   // Oftalmologia - Retinopatia Diabética
   '0905010043': ['0211060127', '0211060178', '0211060020', '0211060259'],
+  // Câncer de Mama - Progressão I
+  '0901010090': ['0201010585', '0203010043'],
+  // Câncer de Mama - Progressão II
+  '0901010103': ['0201010607', '0203020065'],
+  // Câncer de Colo do Útero - Investigação
+  '0901010057': ['0201010666', '0203020081'],
+  // Câncer de Colo do Útero - Avaliação Terapêutica I
+  '0901010111': ['0409060089', '0203020022'],
+  // Câncer de Colo do Útero - Avaliação Terapêutica II
+  '0901010120': ['0409060305', '0203020022'],
 }
+// Nota: 0901010014 (Câncer de Mama Inicial) e 0903010011 (Ortopedia) usam
+// PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
 
 // CBO fixo por procedimento principal (todas as linhas 13 do atendimento usam o mesmo CBO)
 const MAPA_CBO_PROCEDIMENTO = {
@@ -182,6 +194,12 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0905010027': '225265', // OCI Avaliação de Estrabismo
   '0905010035': '225265', // OCI Oftalmologia - a partir de 9 anos
   '0905010043': '225265', // OCI Avaliação de Retinopatia Diabética
+  '0901010014': '225250', // OCI Avaliação Diagnóstica Inicial de Câncer de Mama
+  '0901010090': '225250', // OCI Progressão da Avaliação de Câncer de Mama - I
+  '0901010103': '225250', // OCI Progressão da Avaliação de Câncer de Mama - II
+  '0901010057': '225280', // OCI Investigação Diagnóstica de Câncer de Colo do Útero
+  '0901010111': '225280', // OCI Avaliação Diagnóstica e Terapêutica de Câncer de Colo do Útero - I
+  '0901010120': '225280', // OCI Avaliação Diagnóstica e Terapêutica de Câncer de Colo do Útero - II
 }
 
 // Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
@@ -206,9 +224,12 @@ export function getProcedimentos13(valorExcel) {
   return MAPA_PROCEDIMENTOS_13[procNorm] || []
 }
 
-// Versão completa: inclui procedimentos dinâmicos EXCLUSIVAMENTE para 0903010011 (Ortopedia)
+// Procedimentos que leem procs secundários dinamicamente da coluna PROCEDIMENTO_SECUNDARIO
+const PROCS_DINAMICOS = new Set(['0903010011', '0901010014'])
+
+// Versão completa: retorna procs dinâmicos (PROCEDIMENTO_SECUNDARIO) ou estáticos (MAPA)
 export function getProcedimentos13Completo(procPrincipal, linhaExcel) {
-  if (procPrincipal === '0903010011') {
+  if (PROCS_DINAMICOS.has(procPrincipal)) {
     return parseProcedimentosSecundarios(String(linhaExcel['PROCEDIMENTO_SECUNDARIO'] || '').trim())
   }
   return MAPA_PROCEDIMENTOS_13[procPrincipal] || []
