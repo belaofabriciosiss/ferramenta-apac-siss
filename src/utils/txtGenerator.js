@@ -180,6 +180,8 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0901010111': ['0409060089', '0203020022'],
   // Câncer de Colo do Útero - Avaliação Terapêutica II
   '0901010120': ['0409060305', '0203020022'],
+  // Ortopedia com Radiologia e Ultrassonografia
+  '0903010020': ['0205020062'],
 }
 // Nota: 0901010014 (Câncer de Mama Inicial) e 0903010011 (Ortopedia) usam
 // PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
@@ -200,6 +202,7 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0901010057': '225280', // OCI Investigação Diagnóstica de Câncer de Colo do Útero
   '0901010111': '225280', // OCI Avaliação Diagnóstica e Terapêutica de Câncer de Colo do Útero - I
   '0901010120': '225280', // OCI Avaliação Diagnóstica e Terapêutica de Câncer de Colo do Útero - II
+  '0903010020': '225270', // OCI Avaliação Diagnóstica em Ortopedia com Radiologia e Ultrassonografia
 }
 
 // Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
