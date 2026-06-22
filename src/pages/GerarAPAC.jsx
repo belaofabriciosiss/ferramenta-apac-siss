@@ -370,12 +370,45 @@ export default function GerarAPAC() {
               >
                 <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className={styles.fileInputHidden} onChange={handleArquivoChange} />
                 {planilha ? (
-                  <div className={styles.dropzoneContent}>
-                    <span className={styles.dropzoneIcon}>✓</span>
-                    <div>
-                      <p className={styles.dropzoneName}>{planilha.nome}</p>
-                      <p className={styles.dropzoneInfo}>{planilha.qtdLinhas} registro(s) encontrado(s)</p>
+                  <div className={styles.dropzoneContent} style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span className={styles.dropzoneIcon}>✓</span>
+                      <div>
+                        <p className={styles.dropzoneName}>{planilha.nome}</p>
+                        <p className={styles.dropzoneInfo}>{planilha.qtdLinhas} registro(s) encontrado(s)</p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation()
+                        setPlanilha(null)
+                        setErros(prev => ({ ...prev, planilha: null }))
+                        if (fileInputRef.current) fileInputRef.current.value = ''
+                      }}
+                      title="Remover planilha"
+                      style={{
+                        flexShrink: 0,
+                        background: 'rgba(239,68,68,0.1)',
+                        border: '1px solid rgba(239,68,68,0.3)',
+                        borderRadius: '50%',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                        fontSize: '0.9rem',
+                        fontWeight: '700',
+                        lineHeight: 1,
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)' }}
+                    >
+                      ✕
+                    </button>
                   </div>
                 ) : (
                   <div className={styles.dropzoneContent}>
