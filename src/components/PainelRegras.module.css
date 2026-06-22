@@ -93,7 +93,7 @@
 .corpo {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: scroll;
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -169,21 +169,6 @@
   flex-direction: column;
   gap: 0.75rem;
   animation: slideDown 0.2s ease;
-  max-height: 420px;
-  overflow-y: auto;
-}
-
-.secaoCorpo::-webkit-scrollbar {
-  width: 5px;
-}
-
-.secaoCorpo::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.secaoCorpo::-webkit-scrollbar-thumb {
-  background: #008E7B;
-  border-radius: 3px;
 }
 
 @keyframes slideDown {
