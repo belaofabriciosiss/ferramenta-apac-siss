@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import styles from './Sidebar.module.css'
 
-export default function Sidebar({ setPage, currentPage, onLogout, onAbrirRegras }) {
+export default function Sidebar({ setPage, currentPage, onLogout }) {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     onLogout()
@@ -30,8 +30,8 @@ export default function Sidebar({ setPage, currentPage, onLogout, onAbrirRegras 
           Cadastrar Faixa
         </button>
         <button
-          className={styles.navItem}
-          onClick={onAbrirRegras}
+          className={`${styles.navItem} ${currentPage === 'regras' ? styles.active : ''}`}
+          onClick={() => setPage('regras')}
         >
           <span className={styles.icon}>📖</span>
           Regras Aplicadas
