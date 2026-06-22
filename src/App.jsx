@@ -4,13 +4,12 @@ import Login from './pages/Login'
 import Sidebar from './components/Sidebar'
 import GerarAPAC from './pages/GerarAPAC'
 import CadastrarFaixa from './pages/CadastrarFaixa'
-import PainelRegras from './components/PainelRegras'
+import Regras from './pages/Regras'
 
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState('gerar')
-  const [painelRegrasAberto, setPainelRegrasAberto] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -39,18 +38,13 @@ export default function App() {
         currentPage={currentPage} 
         setPage={setCurrentPage} 
         onLogout={() => setSession(null)}
-        onAbrirRegras={() => setPainelRegrasAberto(true)}
       />
       
       <div style={{ flex: 1, backgroundColor: '#f3f4f6' }}>
         {currentPage === 'gerar' && <GerarAPAC />}
         {currentPage === 'cadastrar' && <CadastrarFaixa />}
+        {currentPage === 'regras' && <Regras />}
       </div>
-
-      <PainelRegras
-        aberto={painelRegrasAberto}
-        onFechar={() => setPainelRegrasAberto(false)}
-      />
     </div>
   )
 }
