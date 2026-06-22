@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import styles from './Sidebar.module.css'
 
-export default function Sidebar({ setPage, currentPage, onLogout }) {
+export default function Sidebar({ setPage, currentPage, onLogout, onAbrirRegras }) {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     onLogout()
@@ -29,11 +29,18 @@ export default function Sidebar({ setPage, currentPage, onLogout }) {
           <span className={styles.icon}>➕</span>
           Cadastrar Faixa
         </button>
+        <button
+          className={styles.navItem}
+          onClick={onAbrirRegras}
+        >
+          <span className={styles.icon}>📖</span>
+          Regras Aplicadas
+        </button>
       </nav>
 
       <div className={styles.footer}>
         <div style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center', marginBottom: '0.75rem', fontWeight: '500' }}>
-          Versão 1.0.1 - Desenvolvido por Fabrício Belão
+          Versão 1.0.0
         </div>
         <button className={styles.logoutBtn} onClick={handleLogout}>
           <span className={styles.icon}>🚪</span>
