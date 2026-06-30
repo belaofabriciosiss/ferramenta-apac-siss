@@ -113,8 +113,9 @@ const SECOES = [
       { id: 'R21', titulo: 'Câncer de Colo do Útero – Aval. Terapêutica II (0901010120)', descricao: 'Gera secundários: 0409060305, 0203020022. CBO: 225280.', tipo: 'mapa' },
       { id: 'R22', titulo: 'Ortopedia com Radiologia e Ultrassonografia (0903010020)', descricao: 'Gera secundário: 0205020062. CBO: 225270.', tipo: 'mapa' },
       { id: 'R23', titulo: 'Síndrome Coronariana Crônica (0902010034)', descricao: 'Gera secundários: 0211020036, 0211020060. CBO: 225120.', tipo: 'mapa' },
-      { id: 'R24', titulo: 'Câncer de Mama Inicial (0901010014) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225250.', tipo: 'destaque' },
-      { id: 'R25', titulo: 'Ortopedia (0903010011) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225270.', tipo: 'destaque' },
+      { id: 'R24', titulo: 'Câncer Gástrico (0901010073)', descricao: 'Gera secundário: 0209010037. CBO: 225165.', tipo: 'mapa' },
+      { id: 'R25', titulo: 'Câncer de Mama Inicial (0901010014) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225250.', tipo: 'destaque' },
+      { id: 'R26', titulo: 'Ortopedia (0903010011) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225270.', tipo: 'destaque' },
     ],
   },
   {
@@ -125,7 +126,7 @@ const SECOES = [
     cor: '#0ea5e9',
     regras: [
       {
-        id: 'R26',
+        id: 'R27',
         titulo: 'Soma de Controle',
         descricao: 'Para cada atendimento, soma-se: código do proc. principal + 1, código 0301010072 + 1, código de cada proc. mapeado + 1, e o número APAC (linha 06). O valor final é: (somaTotal mod 1111) + 1111, resultando em um valor entre 1111 e 2221.',
         tipo: 'info',
@@ -140,25 +141,25 @@ const SECOES = [
     cor: '#0ea5e9',
     regras: [
       {
-        id: 'R27',
+        id: 'R28',
         titulo: 'Nome do Arquivo',
         descricao: 'O arquivo é nomeado como AP{CNES}.{EXT}, onde EXT é a sigla do mês da competência (JAN, FEV, MAR, ABR, MAI, JUN, JUL, AGO, SET, OUT, NOV, DEZ).',
         tipo: 'info',
       },
       {
-        id: 'R28',
+        id: 'R29',
         titulo: 'Remoção de Acentos',
         descricao: 'Todos os campos de texto são normalizados: acentos e caracteres diacríticos são removidos antes de gravação no arquivo (Á→A, Ã→A, Ó→O, ç→c, etc.).',
         tipo: 'info',
       },
       {
-        id: 'R29',
+        id: 'R30',
         titulo: 'Número de Residência vazio',
         descricao: 'Quando o campo "NÚMERO CORRESPONDENTE A RESIDÊNCIA DO PACIENTE" estiver vazio, o valor "S/N" é gravado automaticamente no arquivo.',
         tipo: 'info',
       },
       {
-        id: 'R30',
+        id: 'R31',
         titulo: 'Profissional por Linha (modo Planilha)',
         descricao: 'No modo "Usar Dados da Planilha", os campos NOME PROFISSIONAL AUTORIZADOR, CNS DO AUTORIZADOR e CBO DO AUTORIZADOR são lidos linha a linha da planilha, permitindo autorizadores diferentes por atendimento.',
         tipo: 'info',
