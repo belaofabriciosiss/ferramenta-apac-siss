@@ -184,6 +184,8 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0903010020': ['0205020062'],
   // Síndrome Coronariana Crônica
   '0902010034': ['0211020036', '0211020060'],
+  // Câncer Gástrico
+  '0901010073': ['0209010037'],
 }
 // Nota: 0901010014 (Câncer de Mama Inicial) e 0903010011 (Ortopedia) usam
 // PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
@@ -206,6 +208,7 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0901010120': '225280', // OCI Avaliação Diagnóstica e Terapêutica de Câncer de Colo do Útero - II
   '0903010020': '225270', // OCI Avaliação Diagnóstica em Ortopedia com Radiologia e Ultrassonografia
   '0902010034': '225120', // OCI Avaliação Diagnóstica Inicial - Síndrome Coronariana Crônica
+  '0901010073': '225165', // OCI Avaliação Diagnóstica de Câncer Gástrico
 }
 
 // Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
