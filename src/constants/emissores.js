@@ -12,4 +12,5 @@ export const EMISSORES = [
   { municipio: 'Piracicaba',   codigo: 'M353870001' },
   { municipio: 'Santo André', codigo: 'M354780001' },
   { municipio: 'Itu', codigo: 'M3523909990' },
+  { municipio: 'Osasco', codigo: 'M353440001' },
 ]
