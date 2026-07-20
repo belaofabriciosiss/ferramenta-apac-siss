@@ -114,8 +114,10 @@ const SECOES = [
       { id: 'R22', titulo: 'Ortopedia com Radiologia e Ultrassonografia (0903010020)', descricao: 'Gera secundário: 0205020062. CBO: 225270.', tipo: 'mapa' },
       { id: 'R23', titulo: 'Síndrome Coronariana Crônica (0902010034)', descricao: 'Gera secundários: 0211020036, 0211020060. CBO: 225120.', tipo: 'mapa' },
       { id: 'R24', titulo: 'Câncer Gástrico (0901010073)', descricao: 'Gera secundário: 0209010037. CBO: 225165.', tipo: 'mapa' },
-      { id: 'R25', titulo: 'Câncer de Mama Inicial (0901010014) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225250.', tipo: 'destaque' },
-      { id: 'R26', titulo: 'Ortopedia (0903010011) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225270.', tipo: 'destaque' },
+      { id: 'R25', titulo: 'Saúde da Mulher – Ginecologia I (0906010012)', descricao: 'Gera secundário: 0205020186. CBO: 225250.', tipo: 'mapa' },
+      { id: 'R26', titulo: 'Saúde da Mulher – Ginecologia II (0906010020)', descricao: 'Gera secundário: 0205020160. CBO: 225250.', tipo: 'mapa' },
+      { id: 'R27', titulo: 'Câncer de Mama Inicial (0901010014) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225250.', tipo: 'destaque' },
+      { id: 'R28', titulo: 'Ortopedia (0903010011) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225270.', tipo: 'destaque' },
     ],
   },
   {
