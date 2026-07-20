@@ -186,6 +186,10 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0902010034': ['0211020036', '0211020060'],
   // Câncer Gástrico
   '0901010073': ['0209010037'],
+  // Saúde da Mulher (Ginecologia) I
+  '0906010012': ['0205020186'],
+  // Saúde da Mulher (Ginecologia) II
+  '0906010020': ['0205020160'],
 }
 // Nota: 0901010014 (Câncer de Mama Inicial) e 0903010011 (Ortopedia) usam
 // PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
@@ -209,6 +213,8 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0903010020': '225270', // OCI Avaliação Diagnóstica em Ortopedia com Radiologia e Ultrassonografia
   '0902010034': '225120', // OCI Avaliação Diagnóstica Inicial - Síndrome Coronariana Crônica
   '0901010073': '225165', // OCI Avaliação Diagnóstica de Câncer Gástrico
+  '0906010012': '225250', // OCI Avaliação Diagnóstica Inicial de Saúde da Mulher (Ginecologia) I
+  '0906010020': '225250', // OCI Avaliação Diagnóstica Inicial de Saúde da Mulher (Ginecologia) II
 }
 
 // Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
