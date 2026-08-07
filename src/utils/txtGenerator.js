@@ -140,6 +140,13 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += docPaciente.cpf // CPF DO INDIVIDUO (11) - branco se tiver Cartão SUS
   linha += padText(linhaExcel['IDENTIFICAÇÃO NACIONAL DE EQUIPE'], 10) // EQUIPE
   linha += padText(linhaExcel['PESSOA EM SITUAÇÃO DE RUA'], 1) // PESSOA EM SITUAÇÃO DE RUA (N ou S ou branco) - Ops, truncou na msg usuário "PESSOA EM SITUAÇÃO DE 81" -> vou usar padText
+  
+  const fonteOrc = String(linhaExcel['FONTE ORÇAMENTÁRIA'] || '').trim()
+  linha += fonteOrc ? padNum(fonteOrc, 2) : padText('', 2) // FONTE ORÇAMENTÁRIA (2) - NUM
+  
+  linha += padText(linhaExcel['EMENDAS PARLAMENTARES'], 1) // EMENDAS PARLAMENTARES (1) - CHAR
+  linha += padText(linhaExcel['PESSOA SEM CPF'], 1) // PESSOA SEM CPF (1) - CHAR
+  
   return linha
 }
 
