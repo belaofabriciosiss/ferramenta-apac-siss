@@ -116,8 +116,10 @@ const SECOES = [
       { id: 'R24', titulo: 'Câncer Gástrico (0901010073)', descricao: 'Gera secundário: 0209010037. CBO: 225165.', tipo: 'mapa' },
       { id: 'R25', titulo: 'Saúde da Mulher – Ginecologia I (0906010012)', descricao: 'Gera secundário: 0205020186. CBO: 225250.', tipo: 'mapa' },
       { id: 'R26', titulo: 'Saúde da Mulher – Ginecologia II (0906010020)', descricao: 'Gera secundário: 0205020160. CBO: 225250.', tipo: 'mapa' },
-      { id: 'R27', titulo: 'Câncer de Mama Inicial (0901010014) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225250.', tipo: 'destaque' },
-      { id: 'R28', titulo: 'Ortopedia (0903010011) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225270.', tipo: 'destaque' },
+      { id: 'R27', titulo: 'Neuro Oftalmologia (0905010060)', descricao: 'Gera secundários: 0211060020, 0211060038, 0211060127, 0211060178, 0211060224, 0211060259. CBO: 225265.', tipo: 'mapa' },
+      { id: 'R28', titulo: 'Oncologia Oftalmológica (0905010051)', descricao: 'Gera secundários: 0205020089, 0211060020, 0211060127, 0211060259. CBO: 225265.', tipo: 'mapa' },
+      { id: 'R29', titulo: 'Câncer de Mama Inicial (0901010014) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225250.', tipo: 'destaque' },
+      { id: 'R30', titulo: 'Ortopedia (0903010011) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225270.', tipo: 'destaque' },
     ],
   },
   {
