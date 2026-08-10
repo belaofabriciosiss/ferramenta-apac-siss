@@ -197,6 +197,10 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0906010012': ['0205020186'],
   // Saúde da Mulher (Ginecologia) II
   '0906010020': ['0205020160'],
+  // Neuro Oftalmologia
+  '0905010060': ['0211060020', '0211060038', '0211060127', '0211060178', '0211060224', '0211060259'],
+  // Oncologia Oftalmológica
+  '0905010051': ['0205020089', '0211060020', '0211060127', '0211060259'],
 }
 // Nota: 0901010014 (Câncer de Mama Inicial) e 0903010011 (Ortopedia) usam
 // PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
@@ -222,6 +226,8 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0901010073': '225165', // OCI Avaliação Diagnóstica de Câncer Gástrico
   '0906010012': '225250', // OCI Avaliação Diagnóstica Inicial de Saúde da Mulher (Ginecologia) I
   '0906010020': '225250', // OCI Avaliação Diagnóstica Inicial de Saúde da Mulher (Ginecologia) II
+  '0905010060': '225265', // OCI Avaliação Diagnóstica em Neuro Oftalmologia
+  '0905010051': '225265', // OCI Avaliação Inicial para Oncologia Oftalmológica
 }
 
 // Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
