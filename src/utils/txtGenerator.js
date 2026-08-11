@@ -314,5 +314,11 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
     linhas.push(gerarUmaLinha13(proc, 1, cbo, numeroApac, cabecalho))
   }
 
+  // 4. Linhas com procedimentos compatíveis (coluna PROCEDIMENTO_COMPATIVEL — separados por vírgula)
+  const procsCompativeis = parseProcedimentosSecundarios(String(linhaExcel['PROCEDIMENTO_COMPATIVEL'] || ''))
+  for (const proc of procsCompativeis) {
+    linhas.push(gerarUmaLinha13(proc, 1, cbo, numeroApac, cabecalho))
+  }
+
   return linhas
 }
