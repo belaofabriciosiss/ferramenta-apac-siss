@@ -222,11 +222,14 @@ export default function GerarAPAC() {
         const proc14Norm = normalizarProcedimento(linhaExcel['PROCEDIMENTO_PRINCIPAL'])
         const procs13    = getProcedimentos13Completo(proc14Norm, linhaExcel)
 
+        // Quantidade do proc fixo 0301010072: lida da planilha ou padrão 1
+        const qty0301 = Math.max(1, parseInt(String(linhaExcel['QUANTIDADE_CONSULTA'] || '').replace(/\D/g, '')) || 1)
+
         // Regra: Σ(código tipo 13) + Σ(quantidade tipo 13) + número APAC
         // Linha 13 - proc principal: código + qty 1
         somaControle += BigInt(proc14Norm) + 1n
-        // Linha 13 - proc fixo 0301010072: código + qty 1
-        somaControle += 301010072n + 1n
+        // Linha 13 - proc fixo 0301010072: código + qty real (da planilha ou 1)
+        somaControle += 301010072n + BigInt(qty0301)
         // Linhas 13 - procs mapeados/dinâmicos: código + qty 1 cada
         for (const proc of procs13) somaControle += BigInt(normalizarProcedimento(proc)) + 1n
         // Número da APAC (linha 06)
@@ -241,7 +244,7 @@ export default function GerarAPAC() {
           cboAutorizador:  String(linhaExcel['CBO DO AUTORIZADOR'] || '').replace(/\D/g, '')
         } : cabecalho
 
-        atendimentos.push({ linhaExcel, numeroApac, cabecalhoLinha })
+        atendimentos.push({ linhaExcel, numeroApac, cabecalhoLinha, qty0301 })
       }
 
       const qtdRegistros = atendimentos.length
@@ -253,7 +256,7 @@ export default function GerarAPAC() {
       for (const item of atendimentos) {
         txt += gerarLinha14(item.linhaExcel, item.numeroApac, item.cabecalhoLinha) + '\r\n'
         txt += gerarLinha06(item.linhaExcel, item.numeroApac, item.cabecalhoLinha) + '\r\n'
-        const linhas13 = gerarLinhas13(item.linhaExcel, item.numeroApac, item.cabecalhoLinha)
+        const linhas13 = gerarLinhas13(item.linhaExcel, item.numeroApac, item.cabecalhoLinha, item.qty0301)
         for (const l13 of linhas13) {
           txt += l13 + '\r\n'
         }
