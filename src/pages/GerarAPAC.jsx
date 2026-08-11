@@ -232,6 +232,12 @@ export default function GerarAPAC() {
         somaControle += 301010072n + BigInt(qty0301)
         // Linhas 13 - procs mapeados/dinâmicos: código + qty 1 cada
         for (const proc of procs13) somaControle += BigInt(normalizarProcedimento(proc)) + 1n
+        // Linhas 13 - procs compatíveis (PROCEDIMENTO_COMPATIVEL): código + qty 1 cada
+        const procsCompativeis = String(linhaExcel['PROCEDIMENTO_COMPATIVEL'] || '')
+          .split(',')
+          .map(s => normalizarProcedimento(s.trim()))
+          .filter(s => s.replace(/0/g, '').length > 0)
+        for (const proc of procsCompativeis) somaControle += BigInt(proc) + 1n
         // Número da APAC (linha 06)
         somaControle += BigInt(numeroApac)
 
