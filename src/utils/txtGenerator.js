@@ -286,13 +286,13 @@ function gerarUmaLinha13(codigoProc, quantidade, cbo, numeroApac, cabecalho) {
 /**
  * Retorna ARRAY de linhas 13 para cada atendimento na ordem:
  * 1. Proc. principal da OCI (da planilha)         → qty 1
- * 2. Código fixo 0301010072                       → qty 1
+ * 2. Código fixo 0301010072                       → qty qty0301 (padrão 1, lido da coluna QUANTIDADE 0301010072)
  * 3. Procs mapeados (fixos ou dinâmicos)          → qty 1 cada
  *
  * Para 0903010011 (Ortopedia), os procs da etapa 3 são lidos
  * da coluna PROCEDIMENTO_SECUNDARIO da planilha.
  */
-export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
+export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
   // procPrincipal vem sempre da coluna PROCEDIMENTO_PRINCIPAL da planilha.
   // Para Ortopedia (0903010011), os procedimentos secundarios vem de PROCEDIMENTO_SECUNDARIO.
   const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTO_PRINCIPAL'])
@@ -306,8 +306,8 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho) {
   // 1. Linha com o procedimento principal
   linhas.push(gerarUmaLinha13(procPrincipal, 1, cbo, numeroApac, cabecalho))
 
-  // 2. Linha fixa 0301010072 — quantidade sempre 1
-  linhas.push(gerarUmaLinha13('0301010072', 1, cbo, numeroApac, cabecalho))
+  // 2. Linha fixa 0301010072 — quantidade lida da planilha ou padrão 1
+  linhas.push(gerarUmaLinha13('0301010072', qty0301, cbo, numeroApac, cabecalho))
 
   // 3. Linhas com cada procedimento mapeado para o OCI
   for (const proc of procsMapeados) {
