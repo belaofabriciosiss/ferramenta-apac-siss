@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabaseClient'
 import { calcularDV, validarCNS } from '../utils/apacUtils'
-import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes } from '../utils/txtGenerator'
+import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes, deveIncluirFixo0301 } from '../utils/txtGenerator'
 import { executarConsistencia } from '../utils/consistenciaValidator'
 import { gerarScriptExportarId } from '../utils/exportarIdGenerator'
 import { EMISSORES } from '../constants/emissores'
@@ -228,8 +228,8 @@ export default function GerarAPAC() {
         // Regra: Σ(código tipo 13) + Σ(quantidade tipo 13) + número APAC
         // Linha 13 - proc principal: código + qty 1
         somaControle += BigInt(proc14Norm) + 1n
-        // Linha 13 - proc fixo 0301010072: código + qty real (da planilha ou 1)
-        somaControle += 301010072n + BigInt(qty0301)
+        // Linha 13 - proc fixo 0301010072: código + qty real (omitido para APAC sem o fixo)
+        if (deveIncluirFixo0301(proc14Norm)) somaControle += 301010072n + BigInt(qty0301)
         // Linhas 13 - procs mapeados/dinâmicos: código + qty 1 cada
         for (const proc of procs13) somaControle += BigInt(normalizarProcedimento(proc)) + 1n
         // Linhas 13 - procs compatíveis (PROCEDIMENTO_COMPATIVEL): código + qty 1 cada
