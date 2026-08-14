@@ -203,6 +203,8 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0905010051': ['0205020089', '0211060020', '0211060127', '0211060259'],
   // Gestão do Pré-Operatório (sem procedimentos secundários além do fixo)
   '0902010077': [],
+  // Vasectomia - APAC (sem procedimentos secundários)
+  '0409040240': [],
 }
 // Nota: 0901010014 (Câncer de Mama Inicial) e 0903010011 (Ortopedia) usam
 // PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
@@ -231,6 +233,15 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0905010060': '225265', // OCI Avaliação Diagnóstica em Neuro Oftalmologia
   '0905010051': '225265', // OCI Avaliação Inicial para Oncologia Oftalmológica
   '0902010077': '225120', // OCI Gestão do Pré-Operatório
+  '0409040240': '225225', // APAC Vasectomia
+}
+
+// Procedimentos que NÃO incluem a linha fixa 0301010072 nas linhas 13
+const PROCS_SEM_FIXO_0301 = new Set(['0409040240'])
+
+// Retorna true se o procedimento principal deve gerar a linha fixa 0301010072
+export function deveIncluirFixo0301(procPrincipal) {
+  return !PROCS_SEM_FIXO_0301.has(procPrincipal)
 }
 
 // Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
@@ -309,8 +320,10 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
   // 1. Linha com o procedimento principal
   linhas.push(gerarUmaLinha13(procPrincipal, 1, cbo, numeroApac, cabecalho))
 
-  // 2. Linha fixa 0301010072 — quantidade lida da planilha ou padrão 1
-  linhas.push(gerarUmaLinha13('0301010072', qty0301, cbo, numeroApac, cabecalho))
+  // 2. Linha fixa 0301010072 — omitida para procedimentos APAC sem o código fixo
+  if (deveIncluirFixo0301(procPrincipal)) {
+    linhas.push(gerarUmaLinha13('0301010072', qty0301, cbo, numeroApac, cabecalho))
+  }
 
   // 3. Linhas com cada procedimento mapeado para o OCI
   for (const proc of procsMapeados) {
