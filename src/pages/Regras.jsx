@@ -124,6 +124,21 @@ const SECOES = [
     ],
   },
   {
+    id: 'apac',
+    icone: '🏥',
+    titulo: 'Mapeamento de Procedimentos APAC',
+    descricao: 'Procedimentos APAC que não utilizam o código fixo 0301010072. Apenas o procedimento principal é inserido nas linhas 13.',
+    cor: '#7c3aed',
+    regras: [
+      {
+        id: 'R32',
+        titulo: 'Vasectomia (0409040240)',
+        descricao: 'Procedimento APAC — NÃO gera a linha fixa 0301010072. Apenas o código principal é inserido nas linhas 13. CBO: 225225.',
+        tipo: 'apac',
+      },
+    ],
+  },
+  {
     id: 'controle',
     icone: '🧮',
     titulo: 'Cálculo do Campo de Controle',
@@ -178,6 +193,7 @@ const BADGE = {
   info:     { label: 'ℹ Regra',        bg: '#bae6fd', color: '#0c4a6e' },
   destaque: { label: '★ Atenção',      bg: '#e9d5ff', color: '#581c87' },
   mapa:     { label: '→ Mapeamento',   bg: '#bbf7d0', color: '#14532d' },
+  apac:     { label: '🏥 APAC',        bg: '#ede9fe', color: '#4c1d95' },
 }
 
 const BG = {
@@ -185,6 +201,7 @@ const BG = {
   info:     '#f0f9ff',
   destaque: '#faf5ff',
   mapa:     '#f0fdf9',
+  apac:     '#f5f3ff',
 }
 
 const BORDA = {
@@ -192,6 +209,7 @@ const BORDA = {
   info:     '#0ea5e9',
   destaque: '#a855f7',
   mapa:     '#008E7B',
+  apac:     '#7c3aed',
 }
 
 const totalRegras = SECOES.reduce((t, s) => t + s.regras.length, 0)
