@@ -15,4 +15,5 @@ export const EMISSORES = [
   { municipio: 'Osasco', codigo: 'M353440001' },
   { municipio: 'Campos dos Goytacazes', codigo: 'M330100001' },
   { municipio: 'Jundiaí', codigo: 'M352590001' },
+  { municipio: 'Barueri', codigo: 'M350570001' },
 ]
