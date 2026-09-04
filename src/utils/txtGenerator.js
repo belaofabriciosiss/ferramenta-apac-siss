@@ -248,10 +248,11 @@ export function deveIncluirFixo0301(procPrincipal) {
 // Normaliza cada código para 10 dígitos com zero à esquerda
 function parseProcedimentosSecundarios(valorColuna) {
   const raw = String(valorColuna || '')
-  return raw
+  const codigos = raw
     .split(',')
     .map(s => normalizarProcedimento(s.trim()))
     .filter(s => s.replace(/0/g, '').length > 0) // remove entradas vazias
+  return [...new Set(codigos)] // remove duplicados mantendo a ordem de aparição
 }
 
 // Normaliza o código do procedimento vindo do Excel (sem o zero à esquerda)
