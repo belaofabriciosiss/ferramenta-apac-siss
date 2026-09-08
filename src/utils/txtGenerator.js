@@ -167,8 +167,6 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0902010018': ['0211020036'],
   // Cardiologia
   '0902010026': ['0211020036'],
-  // ORL - Nasofaringe e Orofaringe
-  '0904010031': ['0209040041', '0209040025'],
   // Oftalmologia - 0 a 8 anos
   '0905010019': ['0211060232', '0211060127', '0211060020'],
   // Oftalmologia - Estrabismo
@@ -206,7 +204,7 @@ const MAPA_PROCEDIMENTOS_13 = {
   // Vasectomia - APAC (sem procedimentos secundários)
   '0409040240': [],
 }
-// Nota: 0901010014 (Câncer de Mama Inicial) e 0903010011 (Ortopedia) usam
+// Nota: 0901010014 (Câncer de Mama Inicial), 0903010011 (Ortopedia) e 0904010031 (ORL) usam
 // PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
 
 // CBO fixo por procedimento principal (todas as linhas 13 do atendimento usam o mesmo CBO)
@@ -268,7 +266,7 @@ export function getProcedimentos13(valorExcel) {
 }
 
 // Procedimentos que leem procs secundários dinamicamente da coluna PROCEDIMENTO_SECUNDARIO
-const PROCS_DINAMICOS = new Set(['0903010011', '0901010014'])
+const PROCS_DINAMICOS = new Set(['0903010011', '0901010014', '0904010031'])
 
 // Versão completa: retorna procs dinâmicos (PROCEDIMENTO_SECUNDARIO) ou estáticos (MAPA)
 export function getProcedimentos13Completo(procPrincipal, linhaExcel) {
