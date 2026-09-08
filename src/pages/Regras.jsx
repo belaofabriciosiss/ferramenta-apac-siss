@@ -101,7 +101,7 @@ const SECOES = [
     regras: [
       { id: 'R10', titulo: 'Cirurgia / Risco Cirúrgico (0902010018)', descricao: 'Gera secundário: 0211020036. CBO: 225120.', tipo: 'mapa' },
       { id: 'R11', titulo: 'Cardiologia (0902010026)', descricao: 'Gera secundário: 0211020036. CBO: 225120.', tipo: 'mapa' },
-      { id: 'R12', titulo: 'ORL – Nasofaringe e Orofaringe (0904010031)', descricao: 'Gera secundários: 0209040041, 0209040025. CBO: 225275.', tipo: 'mapa' },
+      { id: 'R12', titulo: 'ORL – Nasofaringe e Orofaringe (0904010031)', descricao: 'Procedimentos secundários lidos dinamicamente da coluna PROCEDIMENTO_SECUNDARIO da planilha (pode vir 0209040041, 0209040025, ambos ou outros). CBO: 225275.', tipo: 'destaque' },
       { id: 'R13', titulo: 'Oftalmologia – 0 a 8 anos (0905010019)', descricao: 'Gera secundários: 0211060232, 0211060127, 0211060020. CBO: 225265.', tipo: 'mapa' },
       { id: 'R14', titulo: 'Oftalmologia – Estrabismo (0905010027)', descricao: 'Gera secundários: 0211060232, 0211060127, 0211060259, 0211060020. CBO: 225265.', tipo: 'mapa' },
       { id: 'R15', titulo: 'Oftalmologia – a partir de 9 anos (0905010035)', descricao: 'Gera secundários: 0211060259, 0211060127, 0211060020. CBO: 225265.', tipo: 'mapa' },
