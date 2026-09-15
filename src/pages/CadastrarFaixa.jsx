@@ -91,6 +91,12 @@ export default function CadastrarFaixa() {
     carregarFaixas()
   }
 
+  async function ativarFaixa(id) {
+    if(!confirm("Deseja reativar esta faixa? Ela voltará a estar disponível para uso.")) return
+    await supabase.from('faixas_apac').update({ ativo: true }).eq('id', id)
+    carregarFaixas()
+  }
+
   async function confirmarExclusao() {
     if (!faixaParaExcluir) return
     await supabase.from('faixas_apac').delete().eq('id', faixaParaExcluir.id)
@@ -238,9 +244,13 @@ export default function CadastrarFaixa() {
                         )}
                       </td>
                       <td style={{ padding: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        {f.ativo && (
+                        {f.ativo ? (
                           <button onClick={() => inativarFaixa(f.id)} style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
                             Inativar
+                          </button>
+                        ) : (
+                          <button onClick={() => ativarFaixa(f.id)} style={{ background: 'transparent', border: '1px solid #008E7B', color: '#008E7B', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                            Ativar
                           </button>
                         )}
                         <button onClick={() => setFaixaDetalhes(f)} title="Detalhes da faixa" style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>
