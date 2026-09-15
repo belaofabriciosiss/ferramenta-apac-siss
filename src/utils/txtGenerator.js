@@ -253,6 +253,14 @@ function parseProcedimentosSecundarios(valorColuna) {
   return [...new Set(codigos)] // remove duplicados mantendo a ordem de aparição
 }
 
+// Parseia CBOs separados por vírgula (para CBO_PROC_SECUNDARIO e CBO_PROC_COMPATIVEL)
+// Retorna array de strings com apenas dígitos; índice i corresponde ao proc i
+function parseCBOs(valorColuna) {
+  return String(valorColuna || '')
+    .split(',')
+    .map(s => s.trim().replace(/\D/g, ''))
+}
+
 // Normaliza o código do procedimento vindo do Excel (sem o zero à esquerda)
 export function normalizarProcedimento(valorExcel) {
   const cleaned = String(valorExcel || '').replace(/\D/g, '')
@@ -324,15 +332,28 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
     linhas.push(gerarUmaLinha13('0301010072', qty0301, cbo, numeroApac, cabecalho))
   }
 
-  // 3. Linhas com cada procedimento mapeado para o OCI
-  for (const proc of procsMapeados) {
-    linhas.push(gerarUmaLinha13(proc, 1, cbo, numeroApac, cabecalho))
+  // 3. Linhas com cada procedimento mapeado/dinâmico
+  if (PROCS_DINAMICOS.has(procPrincipal)) {
+    // Dinâmico (PROCEDIMENTO_SECUNDARIO): cada proc usa o CBO correspondente de CBO_PROC_SECUNDARIO
+    const cboSecundarios = parseCBOs(String(linhaExcel['CBO_PROC_SECUNDARIO'] || ''))
+    for (let i = 0; i < procsMapeados.length; i++) {
+      const cboProc = cboSecundarios[i] || cbo // fallback ao CBO padrão do OCI
+      linhas.push(gerarUmaLinha13(procsMapeados[i], 1, cboProc, numeroApac, cabecalho))
+    }
+  } else {
+    // Estático (MAPA_PROCEDIMENTOS_13): todos usam o CBO padrão do OCI
+    for (const proc of procsMapeados) {
+      linhas.push(gerarUmaLinha13(proc, 1, cbo, numeroApac, cabecalho))
+    }
   }
 
-  // 4. Linhas com procedimentos compatíveis (coluna PROCEDIMENTO_COMPATIVEL — separados por vírgula)
+  // 4. Linhas com procedimentos compatíveis (PROCEDIMENTO_COMPATIVEL)
+  // Cada proc usa o CBO correspondente de CBO_PROC_COMPATIVEL
   const procsCompativeis = parseProcedimentosSecundarios(String(linhaExcel['PROCEDIMENTO_COMPATIVEL'] || ''))
-  for (const proc of procsCompativeis) {
-    linhas.push(gerarUmaLinha13(proc, 1, cbo, numeroApac, cabecalho))
+  const cboCompativeis = parseCBOs(String(linhaExcel['CBO_PROC_COMPATIVEL'] || ''))
+  for (let i = 0; i < procsCompativeis.length; i++) {
+    const cboProc = cboCompativeis[i] || cbo // fallback ao CBO padrão do OCI
+    linhas.push(gerarUmaLinha13(procsCompativeis[i], 1, cboProc, numeroApac, cabecalho))
   }
 
   return linhas
