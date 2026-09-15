@@ -333,18 +333,12 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
   }
 
   // 3. Linhas com cada procedimento mapeado/dinâmico
-  if (PROCS_DINAMICOS.has(procPrincipal)) {
-    // Dinâmico (PROCEDIMENTO_SECUNDARIO): cada proc usa o CBO correspondente de CBO_PROC_SECUNDARIO
-    const cboSecundarios = parseCBOs(String(linhaExcel['CBO_PROC_SECUNDARIO'] || ''))
-    for (let i = 0; i < procsMapeados.length; i++) {
-      const cboProc = cboSecundarios[i] || cbo // fallback ao CBO padrão do OCI
-      linhas.push(gerarUmaLinha13(procsMapeados[i], 1, cboProc, numeroApac, cabecalho))
-    }
-  } else {
-    // Estático (MAPA_PROCEDIMENTOS_13): todos usam o CBO padrão do OCI
-    for (const proc of procsMapeados) {
-      linhas.push(gerarUmaLinha13(proc, 1, cbo, numeroApac, cabecalho))
-    }
+  // CBO_PROC_SECUNDARIO é lido para TODOS os procedimentos (dinâmicos e estáticos).
+  // Se a coluna estiver vazia, o CBO padrão do OCI é usado como fallback.
+  const cboSecundarios = parseCBOs(String(linhaExcel['CBO_PROC_SECUNDARIO'] || ''))
+  for (let i = 0; i < procsMapeados.length; i++) {
+    const cboProc = cboSecundarios[i] || cbo // fallback ao CBO padrão do OCI
+    linhas.push(gerarUmaLinha13(procsMapeados[i], 1, cboProc, numeroApac, cabecalho))
   }
 
   // 4. Linhas com procedimentos compatíveis (PROCEDIMENTO_COMPATIVEL)
