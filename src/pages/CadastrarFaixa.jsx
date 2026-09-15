@@ -91,9 +91,13 @@ export default function CadastrarFaixa() {
     carregarFaixas()
   }
 
-  async function ativarFaixa(id) {
-    if(!confirm("Deseja reativar esta faixa? Ela voltará a estar disponível para uso.")) return
-    await supabase.from('faixas_apac').update({ ativo: true }).eq('id', id)
+  async function ativarFaixa(faixa) {
+    if(!confirm("Deseja reativar esta faixa? Todos os números voltarão a ficar disponíveis.")) return
+    await supabase.from('faixas_apac').update({
+      ativo: true,
+      proximo_numero: faixa.numero_inicial,
+      numeros_restantes: faixa.total_numeros
+    }).eq('id', faixa.id)
     carregarFaixas()
   }
 
@@ -249,7 +253,7 @@ export default function CadastrarFaixa() {
                             Inativar
                           </button>
                         ) : (
-                          <button onClick={() => ativarFaixa(f.id)} style={{ background: 'transparent', border: '1px solid #008E7B', color: '#008E7B', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                          <button onClick={() => ativarFaixa(f)} style={{ background: 'transparent', border: '1px solid #008E7B', color: '#008E7B', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
                             Ativar
                           </button>
                         )}
