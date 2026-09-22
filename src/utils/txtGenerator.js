@@ -203,11 +203,17 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0902010077': [],
   // Vasectomia - APAC (sem procedimentos secundários)
   '0409040240': [],
+  // Saúde Bucal - Mulheres em Situação de Violência I (fixo alternativo: 0301010048)
+  '0907010016': [],
+  // Saúde Bucal - Mulheres em Situação de Violência II (fixo alternativo: 0301010048)
+  '0907010024': [],
 }
 // Nota: 0901010014 (Câncer de Mama Inicial), 0903010011 (Ortopedia) e 0904010031 (ORL) usam
 // PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
+// Nota: 0907010016 e 0907010024 usam procedimento fixo 0301010048 e CBO da coluna CBO_PROC_PRINCIPAL.
 
 // CBO fixo por procedimento principal (todas as linhas 13 do atendimento usam o mesmo CBO)
+// Obs: procedimentos cujo CBO vem da planilha (CBO_PROC_PRINCIPAL) NÃO precisam estar aqui.
 const MAPA_CBO_PROCEDIMENTO = {
   '0902010018': '225120', // OCI Avaliação de Risco Cirúrgico
   '0902010026': '225120', // OCI Avaliação Cardiológica
@@ -234,12 +240,24 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0409040240': '225225', // APAC Vasectomia
 }
 
-// Procedimentos que NÃO incluem a linha fixa 0301010072 nas linhas 13
+// Procedimentos que NÃO incluem NENHUMA linha fixa suplementar (ex: Vasectomia)
 const PROCS_SEM_FIXO_0301 = new Set(['0409040240'])
 
-// Retorna true se o procedimento principal deve gerar a linha fixa 0301010072
+// Retorna true se o procedimento principal deve gerar uma linha fixa suplementar
 export function deveIncluirFixo0301(procPrincipal) {
   return !PROCS_SEM_FIXO_0301.has(procPrincipal)
+}
+
+// Procedimentos cujo código fixo suplementar é diferente de 0301010072
+const MAPA_PROC_FIXO = {
+  '0907010016': '0301010048', // Saúde Bucal - Mulheres em Situação de Violência I
+  '0907010024': '0301010048', // Saúde Bucal - Mulheres em Situação de Violência II
+}
+
+// Retorna o código do procedimento fixo suplementar do atendimento
+// Padrão: 0301010072; exceções definidas em MAPA_PROC_FIXO
+export function getProcFixo(procPrincipal) {
+  return MAPA_PROC_FIXO[procPrincipal] || '0301010072'
 }
 
 // Parseia a coluna PROCEDIMENTO_SECUNDARIO (códigos separados por vírgula)
@@ -319,17 +337,19 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
   const procPrincipal = normalizarProcedimento(linhaExcel['PROCEDIMENTO_PRINCIPAL'])
   const procsMapeados = getProcedimentos13Completo(procPrincipal, linhaExcel)
 
-  // CBO fixo do procedimento; fallback para o CBO do autorizador caso não mapeado
-  const cbo = MAPA_CBO_PROCEDIMENTO[procPrincipal] || cabecalho.cboAutorizador
+  // CBO da OCI: prioriza coluna CBO_PROC_PRINCIPAL da planilha, depois MAPA_CBO_PROCEDIMENTO, com fallback para o autorizador
+  const cboPlanilha = String(linhaExcel['CBO_PROC_PRINCIPAL'] || '').trim().replace(/\D/g, '')
+  const cbo = cboPlanilha || MAPA_CBO_PROCEDIMENTO[procPrincipal] || cabecalho.cboAutorizador
 
   const linhas = []
 
   // 1. Linha com o procedimento principal
   linhas.push(gerarUmaLinha13(procPrincipal, 1, cbo, numeroApac, cabecalho))
 
-  // 2. Linha fixa 0301010072 — omitida para procedimentos APAC sem o código fixo
+  // 2. Linha fixa suplementar (0301010072 ou específico como 0301010048) — omitida para procedimentos APAC sem o código fixo
   if (deveIncluirFixo0301(procPrincipal)) {
-    linhas.push(gerarUmaLinha13('0301010072', qty0301, cbo, numeroApac, cabecalho))
+    const procFixo = getProcFixo(procPrincipal)
+    linhas.push(gerarUmaLinha13(procFixo, qty0301, cbo, numeroApac, cabecalho))
   }
 
   // 3. Linhas com cada procedimento mapeado/dinâmico
