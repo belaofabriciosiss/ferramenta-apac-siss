@@ -121,19 +121,21 @@ const SECOES = [
       { id: 'R29', titulo: 'Gestão do Pré-Operatório (0902010077)', descricao: 'Nenhum procedimento secundário além do fixo 0301010072. CBO: 225120.', tipo: 'mapa' },
       { id: 'R30', titulo: 'Câncer de Mama Inicial (0901010014) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225250.', tipo: 'destaque' },
       { id: 'R31', titulo: 'Ortopedia (0903010011) — Dinâmico', descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225270.', tipo: 'destaque' },
+      { id: 'R32', titulo: 'Atenção em Saúde Bucal para Mulheres em Situação de Violência (0907010016)', descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Procedimento fixo suplementar: 0301010048 (CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis de PROCEDIMENTO_COMPATIVEL (CBO de CBO_PROC_COMPATIVEL).', tipo: 'mapa' },
+      { id: 'R33', titulo: 'Reabilitação Protética em Saúde Bucal para Mulheres em Situação de Violência (0907010024)', descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Procedimento fixo suplementar: 0301010048 (CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis de PROCEDIMENTO_COMPATIVEL (CBO de CBO_PROC_COMPATIVEL).', tipo: 'mapa' },
     ],
   },
   {
     id: 'apac',
     icone: '🏥',
     titulo: 'Mapeamento de Procedimentos APAC',
-    descricao: 'Procedimentos APAC que não utilizam o código fixo 0301010072. Apenas o procedimento principal é inserido nas linhas 13.',
+    descricao: 'Procedimentos APAC que não utilizam o código fixo suplementar. Apenas o procedimento principal é inserido nas linhas 13.',
     cor: '#7c3aed',
     regras: [
       {
-        id: 'R32',
+        id: 'R34',
         titulo: 'Vasectomia (0409040240)',
-        descricao: 'Procedimento APAC — NÃO gera a linha fixa 0301010072. Apenas o código principal é inserido nas linhas 13. CBO: 225225.',
+        descricao: 'Procedimento APAC — NÃO gera linha fixa suplementar (0301010072/0301010048). Apenas o código principal é inserido nas linhas 13. CBO: 225225.',
         tipo: 'apac',
       },
     ],
@@ -146,9 +148,9 @@ const SECOES = [
     cor: '#0ea5e9',
     regras: [
       {
-        id: 'R27',
+        id: 'R35',
         titulo: 'Soma de Controle',
-        descricao: 'Para cada atendimento, soma-se: código do proc. principal + 1, código 0301010072 + 1, código de cada proc. mapeado + 1, e o número APAC (linha 06). O valor final é: (somaTotal mod 1111) + 1111, resultando em um valor entre 1111 e 2221.',
+        descricao: 'Para cada atendimento, soma-se: código do proc. principal + 1, código fixo suplementar (0301010072 ou 0301010048) + qtd real, código de cada proc. mapeado/dinâmico/compatível + 1, e o número APAC (linha 06). O valor final é: (somaTotal mod 1111) + 1111, resultando em um valor entre 1111 e 2221.',
         tipo: 'info',
       },
     ],
