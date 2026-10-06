@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import styles from '../App.module.css'
+import { PROCS_APAC_DIAGNOSTICOS } from '../utils/txtGenerator'
 
 const SECOES = [
   {
@@ -136,6 +137,12 @@ const SECOES = [
         id: 'R34',
         titulo: 'Vasectomia (0409040240)',
         descricao: 'Procedimento APAC — NÃO gera linha fixa suplementar (0301010072/0301010048). Apenas o código principal é inserido nas linhas 13. CBO: 225225.',
+        tipo: 'apac',
+      },
+      {
+        id: 'R34.1',
+        titulo: `Exames / Diagnósticos APAC (${PROCS_APAC_DIAGNOSTICOS.length} procedimentos)`,
+        descricao: `Procedimentos APAC — NÃO geram linha fixa suplementar (0301010072/0301010048). Apenas o código principal é inserido nas linhas 13 (além dos compatíveis, se houver). CBO lido da coluna CBO_PROC_PRINCIPAL da planilha. Códigos: ${PROCS_APAC_DIAGNOSTICOS.join(', ')}.`,
         tipo: 'apac',
       },
     ],
