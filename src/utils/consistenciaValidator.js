@@ -17,17 +17,26 @@ function resolverIdPaciente(row) {
   return String(row['CD_RECEPCAO'] || '').trim()
 }
 
-// Pré-processamento: detecta pares (ID_PACIENTE, PROCEDIMENTO_PRINCIPAL) duplicados
+// Pré-processamento: detecta pares (ID_PACIENTE, PROCEDIMENTO_PRINCIPAL) duplicados e registra as linhas do Excel
 function buildContexto(dados) {
-  const contPares = {}
-  for (const row of dados) {
+  const paresLinhas = {}
+  dados.forEach((row, idx) => {
     const idPaciente = resolverIdPaciente(row)
     const proc       = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
-    if (!idPaciente || !proc.replace(/0/g, '')) continue
+    if (!idPaciente || !proc.replace(/0/g, '')) return
     const key = `${idPaciente}||${proc}`
-    contPares[key] = (contPares[key] || 0) + 1
+    if (!paresLinhas[key]) paresLinhas[key] = []
+    // Linha do Excel: índice 0 corresponde à linha 2 do Excel (linha 1 é cabeçalho)
+    paresLinhas[key].push(idx + 2)
+  })
+
+  const paresdup = new Map()
+  for (const [key, linhas] of Object.entries(paresLinhas)) {
+    if (linhas.length > 1) {
+      paresdup.set(key, linhas)
+    }
   }
-  const paresdup = new Set(Object.keys(contPares).filter(k => contPares[k] > 1))
+
   return { paresdup }
 }
 
@@ -52,7 +61,14 @@ function validarDuplicidade(row, ctx) {
   const idPaciente = resolverIdPaciente(row)
   const proc       = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
   if (!idPaciente || !proc.replace(/0/g, '')) return null
-  if (ctx.paresdup.has(`${idPaciente}||${proc}`)) return 'PACIENTE E PROCEDIMENTO EM DUPLICIDADE'
+  const key = `${idPaciente}||${proc}`
+  const linhas = ctx.paresdup.get(key)
+  if (linhas) {
+    return {
+      tipo: 'PACIENTE E PROCEDIMENTO EM DUPLICIDADE',
+      detalhe: `Procedimento: ${proc} | Linhas no Excel: ${linhas.join(', ')}`
+    }
+  }
   return null
 }
 
@@ -67,27 +83,45 @@ const REGRAS = [
 export function executarConsistencia(dados, nomeArquivo) {
   const ctx = buildContexto(dados)
 
-  // Agrupa erros por CPF (chave única por paciente)
+  // Agrupa erros por CPF/ID único do paciente
   const porPaciente = new Map()
 
-  for (const row of dados) {
-    const cdRecepcao = String(row['CD_RECEPCAO']      || '').trim()
+  dados.forEach((row, idx) => {
+    const linhaExcel = idx + 2
+    const cdRecepcao = String(row['CD_RECEPCAO'] || '').trim()
     const cpf        = normalizarCPF(row['CPF DO INDIVIDUO'])
     const chave      = resolverIdPaciente(row) || JSON.stringify(row)
 
     const errosLinha = REGRAS.map(r => r.fn(row, ctx)).filter(Boolean)
-    if (errosLinha.length === 0) continue
+    if (errosLinha.length === 0) return
 
     if (!porPaciente.has(chave)) {
-      porPaciente.set(chave, { cdRecepcao, cpf, erros: new Set() })
+      porPaciente.set(chave, { cdRecepcao, cpf, erros: new Map() })
     }
-    errosLinha.forEach(e => porPaciente.get(chave).erros.add(e))
-  }
+
+    const reg = porPaciente.get(chave)
+    errosLinha.forEach(e => {
+      if (typeof e === 'string') {
+        // Erros simples: agrupa as linhas onde ocorreram
+        if (!reg.erros.has(e)) {
+          reg.erros.set(e, new Set())
+        }
+        reg.erros.get(e).add(linhaExcel)
+      } else if (e && e.tipo) {
+        // Erros complexos (ex: duplicidade com lista completa de linhas já calculada)
+        if (!reg.erros.has(e.tipo)) {
+          reg.erros.set(e.tipo, e.detalhe)
+        }
+      }
+    })
+  })
 
   // Totalizador por tipo
   const contadores = {}
   for (const { erros } of porPaciente.values()) {
-    for (const e of erros) contadores[e] = (contadores[e] || 0) + 1
+    for (const [tipo] of erros.entries()) {
+      contadores[tipo] = (contadores[tipo] || 0) + 1
+    }
   }
   const totalErros = Object.values(contadores).reduce((a, b) => a + b, 0)
 
@@ -134,7 +168,18 @@ export function executarConsistencia(dados, nomeArquivo) {
       if (!primeiro) L.push(SEP2)
       primeiro = false
       L.push([cdRecepcao, cpf].filter(Boolean).join(' - '))
-      for (const e of erros) L.push(`  - ${e}`)
+      for (const [tipo, val] of erros.entries()) {
+        if (typeof val === 'string') {
+          // Já formatado (duplicidade)
+          L.push(`  - ${tipo} (${val})`)
+        } else if (val instanceof Set) {
+          // Set de linhas do Excel
+          const linhasStr = Array.from(val).join(', ')
+          L.push(`  - ${tipo} (Linha(s) no Excel: ${linhasStr})`)
+        } else {
+          L.push(`  - ${tipo}`)
+        }
+      }
     }
   }
 
@@ -144,4 +189,33 @@ export function executarConsistencia(dados, nomeArquivo) {
   L.push(SEP)
 
   return L.join('\r\n')
+}
+
+/**
+ * Remove registros duplicados de paciente + procedimento principal,
+ * mantendo a primeira ocorrência encontrada de cada par.
+ * Retorna { dadosLimpos, totalRemovidos }
+ */
+export function removerDuplicidades(dados) {
+  const vistos = new Set()
+  const dadosLimpos = []
+  let totalRemovidos = 0
+
+  for (const row of dados) {
+    const idPaciente = resolverIdPaciente(row)
+    const proc       = normalizarProc(row['PROCEDIMENTO_PRINCIPAL'])
+
+    if (idPaciente && proc.replace(/0/g, '')) {
+      const key = `${idPaciente}||${proc}`
+      if (vistos.has(key)) {
+        totalRemovidos++
+        continue // Pula linhas duplicadas (descarta)
+      }
+      vistos.add(key)
+    }
+
+    dadosLimpos.push(row)
+  }
+
+  return { dadosLimpos, totalRemovidos }
 }
