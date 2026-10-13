@@ -194,6 +194,7 @@ export default function GerarAPAC() {
     try {
       const faixa = modoNumeracao === 'faixa' ? faixas.find(f => f.id === faixaSelecionadaId) : null
       let curBase = faixa ? BigInt(faixa.proximo_numero) : 0n
+      const excluidosSet = new Set((faixa?.numeros_excluidos || []).map(String))
 
       const cabecalho = {
         competencia, orgaoOrigem, cnes, cnpj, orgaoDestino, indicadorDestino, dataGeracao,
@@ -209,6 +210,10 @@ export default function GerarAPAC() {
       for (const linhaExcel of planilha.dados) {
         let numeroApac
         if (modoNumeracao === 'faixa') {
+          // Pula numerações canceladas/excluídas da faixa
+          while (excluidosSet.has(String(curBase))) {
+            curBase++
+          }
           const base12 = String(curBase).padStart(12, '0')
           const dv = calcularDV(base12)
           numeroApac = base12 + dv
@@ -285,7 +290,11 @@ export default function GerarAPAC() {
 
       // Atualiza banco apenas no modo faixa
       if (modoNumeracao === 'faixa' && faixa) {
-        const novoRestantes = faixa.numeros_restantes - qtdRegistros
+        // Se após o consumo curBase parar em um número excluído, avança até o próximo disponível
+        while (excluidosSet.has(String(curBase)) && curBase <= BigInt(faixa.numero_final)) {
+          curBase++
+        }
+        const novoRestantes = Math.max(0, faixa.numeros_restantes - qtdRegistros)
         await supabase.from('faixas_apac').update({
           proximo_numero: String(curBase),
           numeros_restantes: novoRestantes,
