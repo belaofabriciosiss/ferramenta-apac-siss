@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabaseClient'
 import { calcularDV, validarCNS } from '../utils/apacUtils'
 import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes, deveIncluirFixo0301, getProcFixo } from '../utils/txtGenerator'
-import { executarConsistencia } from '../utils/consistenciaValidator'
+import { executarConsistencia, removerDuplicidades } from '../utils/consistenciaValidator'
 import { gerarScriptExportarId } from '../utils/exportarIdGenerator'
 import { EMISSORES } from '../constants/emissores'
 import styles from '../App.module.css'
@@ -63,6 +63,7 @@ export default function GerarAPAC() {
   const [gerando, setGerando] = useState(false)
   const [consistindo, setConsistindo] = useState(false)
   const [exportandoId, setExportandoId] = useState(false)
+  const [removendoDup, setRemovendoDup] = useState(false)
 
   useEffect(() => {
     carregarFaixas()
@@ -354,6 +355,51 @@ export default function GerarAPAC() {
     }
   }
 
+  function handleRemoverDuplicidades() {
+    if (!planilha) return
+    setRemovendoDup(true)
+    try {
+      const { dadosLimpos, totalRemovidos } = removerDuplicidades(planilha.dados)
+
+      if (totalRemovidos === 0) {
+        setMensagem({
+          tipo: 'success',
+          texto: 'Nenhuma duplicidade encontrada na planilha! Todos os registros são únicos.'
+        })
+        return
+      }
+
+      // Cria um novo arquivo Excel com os dados desduplicados
+      const ws = XLSX.utils.json_to_sheet(dadosLimpos)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Dados')
+
+      const nomeBase = planilha.nome.replace(/\.(xlsx|xls)$/i, '')
+      const nomeNovoArquivo = `${nomeBase}_sem_duplicadas.xlsx`
+
+      XLSX.writeFile(wb, nomeNovoArquivo)
+
+      // Atualiza a planilha carregada no estado para a versão desduplicada
+      setPlanilha({
+        nome: nomeNovoArquivo,
+        dados: dadosLimpos,
+        qtdLinhas: dadosLimpos.length
+      })
+
+      setMensagem({
+        tipo: 'success',
+        texto: `${totalRemovidos} linha(s) duplicada(s) removida(s) com sucesso! Planilha "${nomeNovoArquivo}" gerada e atualizada na ferramenta (${dadosLimpos.length} registros mantidos).`
+      })
+    } catch (err) {
+      setMensagem({
+        tipo: 'error',
+        texto: `Erro ao remover duplicidades: ${err.message}`
+      })
+    } finally {
+      setRemovendoDup(false)
+    }
+  }
+
   return (
     <div className={styles.page} style={{ marginLeft: '260px', width: 'auto', minHeight: '100vh' }}>
       <header className={styles.header}>
@@ -446,7 +492,23 @@ export default function GerarAPAC() {
 
           {/* Botões de ação da planilha */}
           {planilha && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '0 0 0.5rem 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '0.75rem', padding: '0 0 0.5rem 0' }}>
+              <button
+                type="button"
+                onClick={handleRemoverDuplicidades}
+                disabled={removendoDup}
+                title="Gera e baixa uma nova planilha removendo linhas com o mesmo paciente e procedimento, mantendo a primeira ocorrência"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.65rem 1.4rem', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '600', fontSize: '0.875rem', border: '2px solid #8b5cf6',
+                  background: removendoDup ? '#e5e7eb' : '#f5f3ff', color: '#8b5cf6',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>✂️</span>
+                {removendoDup ? 'Removendo...' : 'REMOVER DUPLICIDADES (.XLSX)'}
+              </button>
               <button
                 type="button"
                 onClick={handleExportarId}
