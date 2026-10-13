@@ -401,7 +401,7 @@ export default function GerarAPAC() {
   }
 
   return (
-    <div className={styles.page} style={{ marginLeft: '260px', width: 'auto', minHeight: '100vh' }}>
+    <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.headerText}>
@@ -492,52 +492,75 @@ export default function GerarAPAC() {
 
           {/* Botões de ação da planilha */}
           {planilha && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '0.75rem', padding: '0 0 0.5rem 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '0.65rem', padding: '0 0 0.5rem 0' }}>
               <button
                 type="button"
                 onClick={handleRemoverDuplicidades}
                 disabled={removendoDup}
                 title="Gera e baixa uma nova planilha removendo linhas com o mesmo paciente e procedimento, mantendo a primeira ocorrência"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.65rem 1.4rem', borderRadius: '8px', cursor: 'pointer',
-                  fontWeight: '600', fontSize: '0.875rem', border: '2px solid #8b5cf6',
-                  background: removendoDup ? '#e5e7eb' : '#f5f3ff', color: '#8b5cf6',
-                  transition: 'all 0.2s'
+                  display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                  padding: '0.6rem 1.15rem', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '600', fontSize: '0.825rem', border: '1px solid #D8E3EB',
+                  background: removendoDup ? '#E6EFF3' : '#ffffff', color: '#17324D',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 1px 2px rgba(23, 50, 77, 0.05)'
                 }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#008E7B'; e.currentTarget.style.color = '#008E7B' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#D8E3EB'; e.currentTarget.style.color = '#17324D' }}
               >
-                <span>✂️</span>
-                {removendoDup ? 'Removendo...' : 'REMOVER DUPLICIDADES (.XLSX)'}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="6" cy="6" r="3"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                  <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                  <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                </svg>
+                <span>{removendoDup ? 'Removendo...' : 'Remover Duplicidades (.xlsx)'}</span>
               </button>
+
               <button
                 type="button"
                 onClick={handleExportarId}
                 disabled={exportandoId}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.65rem 1.4rem', borderRadius: '8px', cursor: 'pointer',
-                  fontWeight: '600', fontSize: '0.875rem', border: '2px solid #3b82f6',
-                  background: exportandoId ? '#e5e7eb' : '#eff6ff', color: '#3b82f6',
-                  transition: 'all 0.2s'
+                  display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                  padding: '0.6rem 1.15rem', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '600', fontSize: '0.825rem', border: '1px solid #D8E3EB',
+                  background: exportandoId ? '#E6EFF3' : '#ffffff', color: '#17324D',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 1px 2px rgba(23, 50, 77, 0.05)'
                 }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#008E7B'; e.currentTarget.style.color = '#008E7B' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#D8E3EB'; e.currentTarget.style.color = '#17324D' }}
               >
-                <span>🗂️</span>
-                {exportandoId ? 'Gerando...' : 'EXPORTAR ID'}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>{exportandoId ? 'Gerando...' : 'Exportar ID'}</span>
               </button>
+
               <button
                 type="button"
                 onClick={handleConsistencia}
                 disabled={consistindo}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.65rem 1.4rem', borderRadius: '8px', cursor: 'pointer',
-                  fontWeight: '600', fontSize: '0.875rem', border: '2px solid #008E7B',
-                  background: consistindo ? '#e5e7eb' : '#f0fdf9', color: '#008E7B',
-                  transition: 'all 0.2s'
+                  display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                  padding: '0.6rem 1.25rem', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '600', fontSize: '0.825rem', border: '1px solid #008E7B',
+                  background: consistindo ? '#E6EFF3' : '#EFFFF6', color: '#008E7B',
+                  transition: 'all 0.15s ease'
                 }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#008E7B'; e.currentTarget.style.color = '#ffffff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#EFFFF6'; e.currentTarget.style.color = '#008E7B' }}
               >
-                <span>🔍</span>
-                {consistindo ? 'Analisando...' : 'REALIZAR CONSISTÊNCIA'}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <span>{consistindo ? 'Analisando...' : 'Realizar Consistência'}</span>
               </button>
             </div>
           )}
