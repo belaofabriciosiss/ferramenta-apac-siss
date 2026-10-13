@@ -229,7 +229,7 @@ export default function Regras() {
   const toggle = (id) => setSecaoAberta(prev => prev === id ? null : id)
 
   return (
-    <div style={{ marginLeft: '260px', minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
+    <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.headerText}>
