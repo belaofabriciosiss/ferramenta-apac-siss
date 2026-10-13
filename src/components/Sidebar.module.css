@@ -1,124 +1,96 @@
-.topbar {
+.sidebar {
+  width: 250px;
+  background-color: #ffffff;
+  border-right: 1px solid #E6EFF3;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
   position: fixed;
-  top: 0;
   left: 0;
-  right: 0;
-  height: 56px;
-  background-color: #008E7B;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.5rem;
-  z-index: 100;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  top: 56px;
+  box-shadow: 2px 0 6px rgba(23, 50, 77, 0.03);
+  z-index: 90;
 }
 
-.left {
+.nav {
   display: flex;
-  align-items: center;
-  gap: 1.25rem;
+  flex-direction: column;
+  padding: 1.25rem 0.75rem;
+  gap: 0.35rem;
+  flex: 1;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+.sectionLabel {
+  font-size: 0.7rem;
   font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
+  color: #8da2b5;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0.85rem 0.25rem 0.85rem;
 }
 
-.logoIcon {
-  width: 22px;
-  height: 22px;
-  stroke: #ffffff;
-}
-
-.brandTitle {
-  color: #ffffff;
-}
-
-.divider {
-  width: 1px;
-  height: 22px;
-  background-color: rgba(255, 255, 255, 0.25);
-}
-
-.moduleBadge {
+.navItem {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.12);
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.shieldIcon {
-  width: 16px;
-  height: 16px;
-  stroke: #EFFFF6;
-}
-
-.moduleText {
-  color: #ffffff;
-}
-
-.right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.userBadge {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
-  padding: 0.35rem 0.75rem;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
-}
-
-.userIcon {
-  width: 16px;
-  height: 16px;
-  stroke: rgba(255, 255, 255, 0.85);
-}
-
-.userEmail {
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.logoutBtn {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-  padding: 0.4rem 0.9rem;
-  border-radius: 6px;
-  font-size: 0.825rem;
-  font-weight: 600;
+  gap: 0.75rem;
+  background: transparent;
+  border: none;
+  color: #17324D;
+  padding: 0.75rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  text-align: left;
+  transition: all 0.15s ease-in-out;
+  position: relative;
 }
 
-.logoutBtn svg {
-  width: 15px;
-  height: 15px;
-  stroke: #ffffff;
+.navItem:hover {
+  background-color: #E6EFF3;
+  color: #17324D;
 }
 
-.logoutBtn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #ffffff;
+.icon {
+  width: 18px;
+  height: 18px;
+  stroke: #657D93;
+  flex-shrink: 0;
+  transition: stroke 0.15s ease;
+}
+
+.navItem:hover .icon {
+  stroke: #17324D;
+}
+
+.active {
+  background-color: #EFFFF6;
+  color: #008E7B;
+  font-weight: 700;
+}
+
+.active .icon {
+  stroke: #008E7B;
+}
+
+.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 4px;
+  background-color: #008E7B;
+  border-radius: 0 4px 4px 0;
+}
+
+.footer {
+  padding: 1rem;
+  border-top: 1px solid #E6EFF3;
+  text-align: center;
+}
+
+.versionText {
+  font-size: 0.75rem;
+  color: #8da2b5;
+  font-weight: 500;
 }
