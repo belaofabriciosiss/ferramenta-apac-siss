@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabaseClient'
 import Login from './pages/Login'
+import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar'
 import GerarAPAC from './pages/GerarAPAC'
 import CadastrarFaixa from './pages/CadastrarFaixa'
@@ -25,25 +26,37 @@ export default function App() {
   }, [])
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'sans-serif' }}>Carregando acesso...</div>
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'sans-serif', color: '#17324D' }}>
+        Carregando acesso...
+      </div>
+    )
   }
 
   if (!session) {
     return <Login onLoginSuccess={() => {}} />
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setSession(null)
+  }
+
   return (
-    <div style={{ display: 'flex' }}>
-      <Sidebar 
-        currentPage={currentPage} 
-        setPage={setCurrentPage} 
-        onLogout={() => setSession(null)}
-      />
+    <div style={{ minHeight: '100vh', backgroundColor: '#F4F7F9' }}>
+      <TopBar onLogout={handleLogout} usuarioEmail={session?.user?.email} />
       
-      <div style={{ flex: 1, backgroundColor: '#f3f4f6' }}>
-        {currentPage === 'gerar' && <GerarAPAC />}
-        {currentPage === 'cadastrar' && <CadastrarFaixa />}
-        {currentPage === 'regras' && <Regras />}
+      <div style={{ display: 'flex', paddingTop: '56px' }}>
+        <Sidebar 
+          currentPage={currentPage} 
+          setPage={setCurrentPage} 
+        />
+        
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {currentPage === 'gerar' && <GerarAPAC />}
+          {currentPage === 'cadastrar' && <CadastrarFaixa />}
+          {currentPage === 'regras' && <Regras />}
+        </div>
       </div>
     </div>
   )
