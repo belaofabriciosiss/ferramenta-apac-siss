@@ -246,7 +246,7 @@ export default function CadastrarFaixa() {
   }
 
   return (
-    <div className={styles.page} style={{ marginLeft: '260px', minHeight: '100vh', width: 'auto' }}>
+    <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.headerText}>
