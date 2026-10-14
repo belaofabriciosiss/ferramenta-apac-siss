@@ -199,8 +199,8 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0905010060': ['0211060020', '0211060038', '0211060127', '0211060178', '0211060224', '0211060259'],
   // Oncologia Oftalmológica
   '0905010051': ['0205020089', '0211060020', '0211060127', '0211060259'],
-  // Gestão do Pré-Operatório (sem procedimentos secundários além do fixo)
-  '0902010077': [],
+  // Gestão do Pré-Operatório (dinâmico via PROCEDIMENTO_SECUNDARIO ou padrão: 0211020036)
+  '0902010077': ['0211020036'],
   // Vasectomia - APAC (sem procedimentos secundários)
   '0409040240': [],
   // Saúde Bucal - Mulheres em Situação de Violência I (fixo alternativo: 0301010048)
@@ -320,6 +320,11 @@ const PROCS_DINAMICOS = new Set(['0903010011', '0901010014', '0904010031'])
 export function getProcedimentos13Completo(procPrincipal, linhaExcel) {
   if (PROCS_DINAMICOS.has(procPrincipal)) {
     return parseProcedimentosSecundarios(String(linhaExcel['PROCEDIMENTO_SECUNDARIO'] || '').trim())
+  }
+  // OCI 0902010077: lê PROCEDIMENTO_SECUNDARIO da planilha; se vazio, usa padrão 0211020036
+  if (procPrincipal === '0902010077') {
+    const procsPlanilha = parseProcedimentosSecundarios(String(linhaExcel['PROCEDIMENTO_SECUNDARIO'] || '').trim())
+    return procsPlanilha.length > 0 ? procsPlanilha : ['0211020036']
   }
   return MAPA_PROCEDIMENTOS_13[procPrincipal] || []
 }
