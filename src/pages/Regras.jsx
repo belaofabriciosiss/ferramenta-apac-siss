@@ -76,7 +76,7 @@ const SECOES = [
       {
         id: 'R07',
         titulo: 'Ordem das Linhas 13',
-        descricao: '1ª linha: Procedimento principal (da coluna PROCEDIMENTO_PRINCIPAL). 2ª linha: Código fixo 0301010072 (quantidade 1). 3ª linha em diante: Procedimentos mapeados/secundários do OCI (quantidade 1 cada).',
+        descricao: '1ª linha: Procedimento principal (da coluna PROCEDIMENTO_PRINCIPAL, quantidade lida de PROCEDIMENTO_PRINCIPAL_QUANTIDADE ou padrão 1). 2ª linha: Código fixo suplementar 0301010072/0301010048 (quantidade lida de QUANTIDADE_CONSULTA ou padrão 1). 3ª linha em diante: Procedimentos mapeados/secundários do OCI (quantidade 1 cada).',
         tipo: 'info',
       },
       {
@@ -157,7 +157,7 @@ const SECOES = [
       {
         id: 'R35',
         titulo: 'Soma de Controle',
-        descricao: 'Para cada atendimento, soma-se: código do proc. principal + 1, código fixo suplementar (0301010072 ou 0301010048) + qtd real, código de cada proc. mapeado/dinâmico/compatível + 1, e o número APAC (linha 06). O valor final é: (somaTotal mod 1111) + 1111, resultando em um valor entre 1111 e 2221.',
+        descricao: 'Para cada atendimento, soma-se: código do proc. principal + qtd real (de PROCEDIMENTO_PRINCIPAL_QUANTIDADE ou 1), código fixo suplementar (0301010072 ou 0301010048) + qtd real, código de cada proc. mapeado/dinâmico/compatível + 1, e o número APAC (linha 06). O valor final é: (somaTotal mod 1111) + 1111, resultando em um valor entre 1111 e 2221.',
         tipo: 'info',
       },
     ],
