@@ -228,12 +228,13 @@ export default function GerarAPAC() {
         const proc14Norm = normalizarProcedimento(linhaExcel['PROCEDIMENTO_PRINCIPAL'])
         const procs13    = getProcedimentos13Completo(proc14Norm, linhaExcel)
 
-        // Quantidade do proc fixo 0301010072: lida da planilha ou padrão 1
-        const qty0301 = Math.max(1, parseInt(String(linhaExcel['QUANTIDADE_CONSULTA'] || '').replace(/\D/g, '')) || 1)
+        // Quantidade do proc principal: lida da coluna PROCEDIMENTO_PRINCIPAL_QUANTIDADE ou padrão 1
+        const rawQtyPrincipal = String(linhaExcel['PROCEDIMENTO_PRINCIPAL_QUANTIDADE'] || '').replace(/\D/g, '')
+        const qtyPrincipal = rawQtyPrincipal ? Math.max(1, parseInt(rawQtyPrincipal, 10)) : 1
 
         // Regra: Σ(código tipo 13) + Σ(quantidade tipo 13) + número APAC
-        // Linha 13 - proc principal: código + qty 1
-        somaControle += BigInt(proc14Norm) + 1n
+        // Linha 13 - proc principal: código + qty real
+        somaControle += BigInt(proc14Norm) + BigInt(qtyPrincipal)
         // Linha 13 - proc fixo suplementar: código + qty real (omitido para APAC sem o fixo)
         if (deveIncluirFixo0301(proc14Norm)) {
           const procFixo = getProcFixo(proc14Norm)
