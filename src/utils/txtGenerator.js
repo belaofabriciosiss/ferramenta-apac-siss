@@ -368,10 +368,14 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
   const cboPlanilha = String(linhaExcel['CBO_PROC_PRINCIPAL'] || '').trim().replace(/\D/g, '')
   const cbo = cboPlanilha || MAPA_CBO_PROCEDIMENTO[procPrincipal] || cabecalho.cboAutorizador
 
+  // Quantidade do procedimento principal: lida da coluna PROCEDIMENTO_PRINCIPAL_QUANTIDADE ou padrão 1
+  const rawQtyPrincipal = String(linhaExcel['PROCEDIMENTO_PRINCIPAL_QUANTIDADE'] || '').replace(/\D/g, '')
+  const qtyPrincipal = rawQtyPrincipal ? Math.max(1, parseInt(rawQtyPrincipal, 10)) : 1
+
   const linhas = []
 
   // 1. Linha com o procedimento principal
-  linhas.push(gerarUmaLinha13(procPrincipal, 1, cbo, numeroApac, cabecalho))
+  linhas.push(gerarUmaLinha13(procPrincipal, qtyPrincipal, cbo, numeroApac, cabecalho))
 
   // 2. Linha fixa suplementar (0301010072 ou específico como 0301010048) — omitida para procedimentos APAC sem o código fixo
   if (deveIncluirFixo0301(procPrincipal)) {
