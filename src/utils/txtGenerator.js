@@ -143,14 +143,24 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += padText(linhaExcel['EMAIL DO PACIENTE'], 40) // EMAIL
   linha += padNum(linhaExcel['CNS MÉDICO EXECUTANTE DO PROCEDIMENTO'], 15) // CNS MÉDICO EXECUTANTE
   linha += docPaciente.cpf // CPF DO INDIVIDUO (11) - branco se tiver Cartão SUS
-  linha += padText(linhaExcel['IDENTIFICAÇÃO NACIONAL DE EQUIPE'], 10) // EQUIPE
-  linha += padText(linhaExcel['PESSOA EM SITUAÇÃO DE RUA'], 1) // PESSOA EM SITUAÇÃO DE RUA (N ou S ou branco) - Ops, truncou na msg usuário "PESSOA EM SITUAÇÃO DE 81" -> vou usar padText
   
-  const fonteOrc = String(linhaExcel['FONTE ORÇAMENTÁRIA'] || '').trim()
-  linha += fonteOrc ? padNum(fonteOrc, 2) : padText('', 2) // FONTE ORÇAMENTÁRIA (2) - NUM
+  // IDENTIFICAÇÃO NACIONAL DE EQUIPE: 10 caracteres, apenas números quando preenchido, ou espaços em branco
+  const equipeNum = String(linhaExcel['IDENTIFICAÇÃO NACIONAL DE EQUIPE'] || '').replace(/\D/g, '')
+  linha += equipeNum ? padText(equipeNum, 10) : padText('', 10)
   
-  linha += padText(linhaExcel['EMENDAS PARLAMENTARES'], 1) // EMENDAS PARLAMENTARES (1) - CHAR
-  linha += padText(linhaExcel['PESSOA SEM CPF'], 1) // PESSOA SEM CPF (1) - CHAR
+  // PESSOA EM SITUAÇÃO DE RUA: 1 caractere (S ou N ou branco)
+  linha += padText(linhaExcel['PESSOA EM SITUAÇÃO DE RUA'], 1)
+  
+  // FONTE ORÇAMENTÁRIA: 2 caracteres, numérico ou espaços em branco
+  const fonteOrc = String(linhaExcel['FONTE ORÇAMENTÁRIA'] || '').trim().replace(/\D/g, '')
+  linha += fonteOrc ? padNum(fonteOrc, 2) : padText('', 2)
+  
+  // EMENDAS PARLAMENTARES: 1 caractere, ou espaço em branco
+  linha += padText(linhaExcel['EMENDAS PARLAMENTARES'], 1)
+  
+  // PESSOA SEM CPF/REGISTRO CIVIL: 1 caractere (coluna "PACIENTE SEM CPF" ou "PESSOA SEM CPF")
+  const semCpf = String(linhaExcel['PACIENTE SEM CPF'] !== undefined ? linhaExcel['PACIENTE SEM CPF'] : (linhaExcel['PESSOA SEM CPF'] || '')).trim()
+  linha += padText(semCpf, 1)
   
   return linha
 }
