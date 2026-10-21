@@ -25,7 +25,25 @@ const SECOES = [
       {
         id: 'R03',
         titulo: 'Duplicidade de Paciente + Procedimento',
-        descricao: 'A combinação de Paciente (identificado por CPF, Cartão SUS ou CD_RECEPCAO, nessa ordem de prioridade) e PROCEDIMENTO_PRINCIPAL não pode aparecer mais de uma vez na mesma planilha. Registros duplicados são apontados como erro.',
+        descricao: 'A combinação de Paciente (identificado por CPF, Cartão SUS ou CD_RECEPCAO, nessa ordem de prioridade) e PROCEDIMENTO_PRINCIPAL não pode aparecer mais de uma vez na mesma planilha. Registros duplicados são apontados como erro indicando as linhas do Excel.',
+        tipo: 'alerta',
+      },
+      {
+        id: 'R03.1',
+        titulo: 'Endereço do Paciente',
+        descricao: 'O campo "IDENTIFICAÇÃO DO LOGRADOURO DE RESIDÊNCIA DO PACIENTE" não pode estar vazio em branco. Quando não preenchido, é apontado como "Endereço do paciente inválido".',
+        tipo: 'alerta',
+      },
+      {
+        id: 'R03.2',
+        titulo: 'Identificação de Paciente sem CPF',
+        descricao: 'Caso o campo "PACIENTE SEM CPF" esteja preenchido com o valor "S", é apontado nas inconsistências como "Paciente sem CPF".',
+        tipo: 'alerta',
+      },
+      {
+        id: 'R03.3',
+        titulo: 'Validação de CID',
+        descricao: 'O campo "CID CAUSAS ASSOCIADAS" não pode estar vazio nem conter o valor "NULL". Quando ausente ou inválido, é apontado como "Atendimento sem CID válido".',
         tipo: 'alerta',
       },
     ],
@@ -368,4 +386,3 @@ export default function Regras() {
     </div>
   )
 }
-
