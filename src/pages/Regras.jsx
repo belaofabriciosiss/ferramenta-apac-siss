@@ -199,6 +199,12 @@ const SECOES = [
         descricao: 'No campo "COMPLEMENTO DO LOGRADOURO DO PACIENTE", os caracteres "º", "ª", ".", "|", "/", "(", ")", ":", "-", "," são substituídos automaticamente por espaço vazio, mantendo o tamanho fixo de 10 caracteres do campo.',
         tipo: 'info',
       },
+      {
+        id: 'R33',
+        titulo: 'Campos Finais da Linha 14 (OCI e APAC)',
+        descricao: 'Posições finais da Linha 14 (513 a 537): CPF do Indivíduo (11 chars), Identificação Nacional de Equipe (10 chars, apenas números ou espaços), Pessoa em Situação de Rua (1 char), Fonte Orçamentária (2 chars, números ou espaços), Emendas Parlamentares (1 char) e Paciente Sem CPF (posição 537, 1 char, lido de "PACIENTE SEM CPF" ou "PESSOA SEM CPF"). Finalizado com CR+LF.',
+        tipo: 'info',
+      },
     ],
   },
 ]
