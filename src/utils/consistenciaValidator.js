@@ -72,10 +72,31 @@ function validarDuplicidade(row, ctx) {
   return null
 }
 
+function validarLogradouro(row) {
+  const logradouro = String(row['IDENTIFICAÇÃO DO LOGRADOURO DE RESIDÊNCIA DO PACIENTE'] || '').trim()
+  if (!logradouro) return 'Endereço do paciente inválido'
+  return null
+}
+
+function validarPacienteSemCpf(row) {
+  const val = String(row['PACIENTE SEM CPF'] !== undefined ? row['PACIENTE SEM CPF'] : (row['PESSOA SEM CPF'] || '')).trim().toUpperCase()
+  if (val === 'S') return 'Paciente sem CPF'
+  return null
+}
+
+function validarCid(row) {
+  const cid = String(row['CID CAUSAS ASSOCIADAS'] || '').trim().toUpperCase()
+  if (!cid || cid === 'NULL') return 'Atendimento sem CID válido'
+  return null
+}
+
 const REGRAS = [
   { fn: validarEmail },
   { fn: validarProfissionaisDistintos },
   { fn: validarDuplicidade },
+  { fn: validarLogradouro },
+  { fn: validarPacienteSemCpf },
+  { fn: validarCid },
 ]
 
 // ─── Runner ───────────────────────────────────────────────────────────────────
