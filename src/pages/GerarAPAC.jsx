@@ -232,6 +232,9 @@ export default function GerarAPAC() {
         const rawQtyPrincipal = String(linhaExcel['PROCEDIMENTO_PRINCIPAL_QUANTIDADE'] || '').replace(/\D/g, '')
         const qtyPrincipal = rawQtyPrincipal ? Math.max(1, parseInt(rawQtyPrincipal, 10)) : 1
 
+        // Quantidade do proc fixo suplementar (0301010072/0301010048): lida da planilha ou padrão 1
+        const qty0301 = Math.max(1, parseInt(String(linhaExcel['QUANTIDADE_CONSULTA'] || '').replace(/\D/g, '')) || 1)
+
         // Regra: Σ(código tipo 13) + Σ(quantidade tipo 13) + número APAC
         // Linha 13 - proc principal: código + qty real
         somaControle += BigInt(proc14Norm) + BigInt(qtyPrincipal)
