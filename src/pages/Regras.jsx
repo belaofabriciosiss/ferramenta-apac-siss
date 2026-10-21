@@ -193,6 +193,12 @@ const SECOES = [
         descricao: 'No modo "Usar Dados da Planilha", os campos NOME PROFISSIONAL AUTORIZADOR, CNS DO AUTORIZADOR e CBO DO AUTORIZADOR são lidos linha a linha da planilha, permitindo autorizadores diferentes por atendimento.',
         tipo: 'info',
       },
+      {
+        id: 'R32',
+        titulo: 'Caracteres Especiais no Complemento do Logradouro',
+        descricao: 'No campo "COMPLEMENTO DO LOGRADOURO DO PACIENTE", os caracteres "º", "ª", ".", "|", "/", "(", ")", ":", "-", "," são substituídos automaticamente por espaço vazio, mantendo o tamanho fixo de 10 caracteres do campo.',
+        tipo: 'info',
+      },
     ],
   },
 ]
