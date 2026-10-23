@@ -35,6 +35,21 @@ export default function Sidebar({ setPage, currentPage }) {
           <span className={styles.navText}>Cadastrar Faixas</span>
         </button>
 
+        <button 
+          className={`${styles.navItem} ${currentPage === 'estabelecimentos' ? styles.active : ''}`}
+          onClick={() => setPage('estabelecimentos')}
+        >
+          <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 21h18"/>
+            <path d="M5 21V7l8-4v18"/>
+            <path d="M19 21V11l-6-4"/>
+            <path d="M9 9h1"/>
+            <path d="M9 13h1"/>
+            <path d="M9 17h1"/>
+          </svg>
+          <span className={styles.navText}>Cadastro Estabelecimento</span>
+        </button>
+
         <div className={styles.sectionLabel} style={{ marginTop: '1.25rem' }}>CONSULTAS</div>
 
         <button
