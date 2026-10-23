@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { validarCNS } from '../utils/apacUtils'
 import { EMISSORES } from '../constants/emissores'
+import { CLIENTES } from '../constants/clientes'
 import styles from '../App.module.css'
 
 export default function CadastrarEstabelecimento() {
+  const [cliente, setCliente] = useState('')
   const [cnes, setCnes] = useState('')
   const [estabelecimentoOrigem, setEstabelecimentoOrigem] = useState('')
   const [cnpj, setCnpj] = useState('')
@@ -30,6 +32,7 @@ export default function CadastrarEstabelecimento() {
     const { data, error } = await supabase
       .from('estabelecimentos')
       .select('*')
+      .order('cliente', { ascending: true })
       .order('estabelecimento_origem', { ascending: true })
 
     if (!error && data) {
@@ -38,6 +41,7 @@ export default function CadastrarEstabelecimento() {
   }
 
   function limparFormulario() {
+    setCliente('')
     setCnes('')
     setEstabelecimentoOrigem('')
     setCnpj('')
@@ -52,6 +56,7 @@ export default function CadastrarEstabelecimento() {
 
   function handleEditar(item) {
     setEditandoId(item.id)
+    setCliente(item.cliente || '')
     setCnes(item.cnes || '')
     setEstabelecimentoOrigem(item.estabelecimento_origem || '')
     setCnpj(item.cnpj || '')
@@ -68,6 +73,11 @@ export default function CadastrarEstabelecimento() {
   async function handleSubmit(e) {
     e.preventDefault()
     setMensagem(null)
+
+    if (!cliente) {
+      setMensagem({ tipo: 'error', texto: 'Selecione o Cliente / Município.' })
+      return
+    }
 
     const cnesClean = cnes.replace(/\D/g, '')
     if (cnesClean.length !== 6) {
@@ -116,6 +126,7 @@ export default function CadastrarEstabelecimento() {
     setLoading(true)
 
     const registro = {
+      cliente,
       cnes: cnesClean,
       estabelecimento_origem: estabelecimentoOrigem.trim(),
       cnpj: cnpjClean,
@@ -169,7 +180,7 @@ export default function CadastrarEstabelecimento() {
         <div className={styles.headerInner}>
           <div className={styles.headerText}>
             <h1 className={styles.headerTitle}>Cadastro de Estabelecimento</h1>
-            <p className={styles.headerSub}>Cadastre os dados de cabeçalho e autorizador para preenchimento automático na geração de APAC.</p>
+            <p className={styles.headerSub}>Cadastre os dados de cabeçalho e autorizador vinculados a cada Cliente para preenchimento automático.</p>
           </div>
         </div>
       </header>
@@ -201,9 +212,23 @@ export default function CadastrarEstabelecimento() {
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {/* Linha 1: CNES e Nome Origem */}
+              {/* Linha 1: Cliente, CNES e Estabelecimento Origem */}
               <div className={styles.fieldsRow}>
-                <div className={styles.fieldGroup} style={{ flex: '0 0 220px' }}>
+                <div className={styles.fieldGroup} style={{ flex: '0 0 240px' }}>
+                  <label className={styles.fieldLabel}>Cliente *</label>
+                  <select
+                    className={styles.input}
+                    value={cliente}
+                    onChange={e => setCliente(e.target.value)}
+                    style={{ fontWeight: '600' }}
+                  >
+                    <option value="">-- Selecione o Cliente --</option>
+                    {CLIENTES.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.fieldGroup} style={{ flex: '0 0 160px' }}>
                   <label className={styles.fieldLabel}>CNES (6 dígitos) *</label>
                   <input
                     type="text"
@@ -213,7 +238,7 @@ export default function CadastrarEstabelecimento() {
                     onChange={e => setCnes(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="Ex: 278500"
                   />
-                  <span className={styles.fieldSublabel}>Sem o dígito verificador</span>
+                  <span className={styles.fieldSublabel}>Sem o DV</span>
                 </div>
                 <div className={styles.fieldGroup}>
                   <label className={styles.fieldLabel}>Estabelecimento Origem *</label>
@@ -351,6 +376,7 @@ export default function CadastrarEstabelecimento() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #E6EFF3', color: '#657D93' }}>
+                    <th style={{ padding: '0.75rem' }}>Cliente</th>
                     <th style={{ padding: '0.75rem' }}>CNES</th>
                     <th style={{ padding: '0.75rem' }}>Estabelecimento Origem</th>
                     <th style={{ padding: '0.75rem' }}>CNPJ</th>
@@ -362,6 +388,11 @@ export default function CadastrarEstabelecimento() {
                 <tbody>
                   {estabelecimentos.map(item => (
                     <tr key={item.id} style={{ borderBottom: '1px solid #E6EFF3' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: '700', color: '#17324D' }}>
+                        <span style={{ background: '#E6EFF3', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>
+                          {item.cliente || '-'}
+                        </span>
+                      </td>
                       <td style={{ padding: '0.75rem', fontFamily: 'monospace', fontWeight: '700', color: '#008E7B' }}>
                         {item.cnes}
                       </td>
@@ -423,7 +454,7 @@ export default function CadastrarEstabelecimento() {
                   ))}
                   {estabelecimentos.length === 0 && (
                     <tr>
-                      <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#657D93' }}>
+                      <td colSpan="7" style={{ padding: '2rem', textAlign: 'center', color: '#657D93' }}>
                         Nenhum estabelecimento cadastrado ainda.
                       </td>
                     </tr>
@@ -441,7 +472,7 @@ export default function CadastrarEstabelecimento() {
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '440px' }}>
             <h3 style={{ marginTop: 0, color: '#17324D' }}>Confirmar Exclusão</h3>
             <p style={{ color: '#657D93', fontSize: '0.9rem' }}>
-              Deseja realmente excluir o cadastro do estabelecimento <strong>{itemParaExcluir.estabelecimento_origem}</strong> (CNES: {itemParaExcluir.cnes})?
+              Deseja realmente excluir o cadastro do estabelecimento <strong>{itemParaExcluir.estabelecimento_origem}</strong> ({itemParaExcluir.cliente} - CNES: {itemParaExcluir.cnes})?
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
               <button
