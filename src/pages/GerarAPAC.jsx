@@ -6,6 +6,7 @@ import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcediment
 import { executarConsistencia, removerDuplicidades } from '../utils/consistenciaValidator'
 import { gerarScriptExportarId } from '../utils/exportarIdGenerator'
 import { EMISSORES } from '../constants/emissores'
+import { CLIENTES } from '../constants/clientes'
 import styles from '../App.module.css'
 
 function getUltimosMeses() {
@@ -58,6 +59,7 @@ export default function GerarAPAC() {
   const [modoNumeracao, setModoNumeracao] = useState('faixa') // 'faixa' | 'planilha'
   const [modoProfissional, setModoProfissional] = useState('manual') // 'manual' | 'planilha'
 
+  const [clienteSelecionado, setClienteSelecionado] = useState('')
   const [estabelecimentos, setEstabelecimentos] = useState([])
   const [estabelecimentoSelecionadoId, setEstabelecimentoSelecionadoId] = useState('')
 
@@ -120,6 +122,16 @@ export default function GerarAPAC() {
       .order('estabelecimento_origem', { ascending: true })
 
     if (data) setEstabelecimentos(data)
+  }
+
+  const estabelecimentosFiltrados = clienteSelecionado
+    ? estabelecimentos.filter(item => item.cliente === clienteSelecionado)
+    : []
+
+  function handleSelecionarCliente(e) {
+    const novoCliente = e.target.value
+    setClienteSelecionado(novoCliente)
+    setEstabelecimentoSelecionadoId('')
   }
 
   function handleSelecionarEstabelecimento(e) {
@@ -621,27 +633,62 @@ export default function GerarAPAC() {
           <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '1.25rem', marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '1.1rem' }}>🏥</span>
-              <label htmlFor="estabelecimentoSelect" style={{ fontWeight: '700', fontSize: '0.9rem', color: '#17324D' }}>
+              <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#17324D' }}>
                 Preenchimento Automático por Estabelecimento (Opcional)
               </label>
             </div>
-            <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.8rem', color: '#657D93' }}>
-              Selecione um estabelecimento cadastrado para preencher automaticamente os dados do Cabeçalho e do Profissional Autorizador, ou preencha manualmente nos campos abaixo.
+            <p style={{ margin: '0 0 0.85rem 0', fontSize: '0.8rem', color: '#657D93' }}>
+              Selecione o Cliente e o Estabelecimento para preencher automaticamente os dados do Cabeçalho e do Profissional Autorizador, ou realize o preenchimento manual nos campos abaixo.
             </p>
-            <select
-              id="estabelecimentoSelect"
-              className={styles.input}
-              value={estabelecimentoSelecionadoId}
-              onChange={handleSelecionarEstabelecimento}
-              style={{ fontWeight: '600', color: '#17324D', backgroundColor: '#FFFFFF' }}
-            >
-              <option value="">-- Preenchimento manual / Selecione um estabelecimento cadastrado --</option>
-              {estabelecimentos.map(est => (
-                <option key={est.id} value={est.id}>
-                  {est.cnes} - {est.estabelecimento_origem} ({est.profissional_nome || 'Sem autorizador'})
-                </option>
-              ))}
-            </select>
+            <div className={styles.fieldsRow}>
+              <InputField label="1. Cliente" id="clienteSelect">
+                <select
+                  id="clienteSelect"
+                  className={styles.input}
+                  value={clienteSelecionado}
+                  onChange={handleSelecionarCliente}
+                  style={{ fontWeight: '600', color: '#17324D', backgroundColor: '#FFFFFF' }}
+                >
+                  <option value="">-- Selecione o Cliente --</option>
+                  {CLIENTES.map(cli => (
+                    <option key={cli} value={cli}>{cli}</option>
+                  ))}
+                </select>
+              </InputField>
+
+              <InputField 
+                label="2. Estabelecimento" 
+                sublabel={clienteSelecionado ? `(${estabelecimentosFiltrados.length} disponível(is))` : ''} 
+                id="estabelecimentoSelect"
+              >
+                <select
+                  id="estabelecimentoSelect"
+                  className={styles.input}
+                  value={estabelecimentoSelecionadoId}
+                  onChange={handleSelecionarEstabelecimento}
+                  disabled={!clienteSelecionado}
+                  style={{
+                    fontWeight: '600',
+                    color: !clienteSelecionado ? '#94A3B8' : '#17324D',
+                    backgroundColor: !clienteSelecionado ? '#F1F5F9' : '#FFFFFF',
+                    cursor: !clienteSelecionado ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <option value="">
+                    {!clienteSelecionado
+                      ? '-- Primeiro selecione um Cliente --'
+                      : estabelecimentosFiltrados.length === 0
+                        ? '-- Nenhum estabelecimento cadastrado para este cliente --'
+                        : '-- Preenchimento manual / Selecione o Estabelecimento --'}
+                  </option>
+                  {estabelecimentosFiltrados.map(est => (
+                    <option key={est.id} value={est.id}>
+                      {est.cnes} - {est.estabelecimento_origem} ({est.profissional_nome || 'Sem autorizador'})
+                    </option>
+                  ))}
+                </select>
+              </InputField>
+            </div>
           </div>
 
           {/* Seção 2 — Cabeçalho */}
