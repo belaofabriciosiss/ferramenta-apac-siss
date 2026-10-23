@@ -58,6 +58,9 @@ export default function GerarAPAC() {
   const [modoNumeracao, setModoNumeracao] = useState('faixa') // 'faixa' | 'planilha'
   const [modoProfissional, setModoProfissional] = useState('manual') // 'manual' | 'planilha'
 
+  const [estabelecimentos, setEstabelecimentos] = useState([])
+  const [estabelecimentoSelecionadoId, setEstabelecimentoSelecionadoId] = useState('')
+
   const [erros, setErros] = useState({})
   const [mensagem, setMensagem] = useState(null)
   const [gerando, setGerando] = useState(false)
@@ -67,6 +70,7 @@ export default function GerarAPAC() {
 
   useEffect(() => {
     carregarFaixas()
+    carregarEstabelecimentos()
     const saved = localStorage.getItem('apac_form_data')
     if (saved) {
       try {
@@ -107,6 +111,48 @@ export default function GerarAPAC() {
       .order('criado_em', { ascending: false })
       
     if (data) setFaixas(data)
+  }
+
+  async function carregarEstabelecimentos() {
+    const { data } = await supabase
+      .from('estabelecimentos')
+      .select('*')
+      .order('estabelecimento_origem', { ascending: true })
+
+    if (data) setEstabelecimentos(data)
+  }
+
+  function handleSelecionarEstabelecimento(e) {
+    const id = e.target.value
+    setEstabelecimentoSelecionadoId(id)
+
+    if (!id) return // Permite preenchimento manual quando nenhum for selecionado
+
+    const est = estabelecimentos.find(item => item.id === id)
+    if (est) {
+      if (est.cnes) setCnes(est.cnes)
+      if (est.estabelecimento_origem) setOrgaoOrigem(est.estabelecimento_origem)
+      if (est.cnpj) setCnpj(est.cnpj)
+      if (est.orgao_destino) setOrgaoDestino(est.orgao_destino)
+      if (est.indicador_destino) setIndicadorDestino(est.indicador_destino)
+      if (est.codigo_emissor) setCodigoEmissor(est.codigo_emissor)
+      if (est.profissional_nome) setProfissional(est.profissional_nome)
+      if (est.profissional_cns) setCnsAutorizador(est.profissional_cns)
+      if (est.profissional_cbo) setCboProfissional(est.profissional_cbo)
+
+      // Limpa eventuais erros de campos preenchidos
+      setErros(prev => ({
+        ...prev,
+        cnes: null,
+        orgaoOrigem: null,
+        cnpj: null,
+        orgaoDestino: null,
+        codigoEmissor: null,
+        profissional: null,
+        cns: null,
+        cbo: null
+      }))
+    }
   }
 
   function handleArquivoChange(e) {
@@ -570,6 +616,33 @@ export default function GerarAPAC() {
           )}
 
           <div className={styles.divider} />
+
+          {/* Seleção de Estabelecimento Cadastrado (Preenchimento Automático) */}
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '1.1rem' }}>🏥</span>
+              <label htmlFor="estabelecimentoSelect" style={{ fontWeight: '700', fontSize: '0.9rem', color: '#17324D' }}>
+                Preenchimento Automático por Estabelecimento (Opcional)
+              </label>
+            </div>
+            <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.8rem', color: '#657D93' }}>
+              Selecione um estabelecimento cadastrado para preencher automaticamente os dados do Cabeçalho e do Profissional Autorizador, ou preencha manualmente nos campos abaixo.
+            </p>
+            <select
+              id="estabelecimentoSelect"
+              className={styles.input}
+              value={estabelecimentoSelecionadoId}
+              onChange={handleSelecionarEstabelecimento}
+              style={{ fontWeight: '600', color: '#17324D', backgroundColor: '#FFFFFF' }}
+            >
+              <option value="">-- Preenchimento manual / Selecione um estabelecimento cadastrado --</option>
+              {estabelecimentos.map(est => (
+                <option key={est.id} value={est.id}>
+                  {est.cnes} - {est.estabelecimento_origem} ({est.profissional_nome || 'Sem autorizador'})
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Seção 2 — Cabeçalho */}
           <section className={styles.section}>
