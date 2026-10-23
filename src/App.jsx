@@ -5,6 +5,7 @@ import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar'
 import GerarAPAC from './pages/GerarAPAC'
 import CadastrarFaixa from './pages/CadastrarFaixa'
+import CadastrarEstabelecimento from './pages/CadastrarEstabelecimento'
 import Regras from './pages/Regras'
 
 export default function App() {
@@ -55,6 +56,7 @@ export default function App() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {currentPage === 'gerar' && <GerarAPAC />}
           {currentPage === 'cadastrar' && <CadastrarFaixa />}
+          {currentPage === 'estabelecimentos' && <CadastrarEstabelecimento />}
           {currentPage === 'regras' && <Regras />}
         </div>
       </div>
