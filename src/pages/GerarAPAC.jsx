@@ -148,9 +148,9 @@ export default function GerarAPAC() {
       if (est.orgao_destino) setOrgaoDestino(est.orgao_destino)
       if (est.indicador_destino) setIndicadorDestino(est.indicador_destino)
       if (est.codigo_emissor) setCodigoEmissor(est.codigo_emissor)
-      if (est.profissional_nome) setProfissional(est.profissional_nome)
-      if (est.profissional_cns) setCnsAutorizador(est.profissional_cns)
-      if (est.profissional_cbo) setCboProfissional(est.profissional_cbo)
+      if (est.profissional_nome !== undefined) setProfissional(est.profissional_nome || '')
+      if (est.profissional_cns !== undefined) setCnsAutorizador(est.profissional_cns || '')
+      if (est.profissional_cbo !== undefined) setCboProfissional(est.profissional_cbo || '')
 
       // Limpa eventuais erros de campos preenchidos
       setErros(prev => ({
