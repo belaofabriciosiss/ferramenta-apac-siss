@@ -106,19 +106,14 @@ export default function CadastrarEstabelecimento() {
       return
     }
 
-    if (!profissional.trim()) {
-      setMensagem({ tipo: 'error', texto: 'Informe o Nome Completo do Profissional Autorizador.' })
-      return
-    }
-
     const cnsClean = cnsAutorizador.replace(/\D/g, '')
-    if (cnsClean.length !== 15 || !validarCNS(cnsClean)) {
+    if (cnsClean.length > 0 && (cnsClean.length !== 15 || !validarCNS(cnsClean))) {
       setMensagem({ tipo: 'error', texto: 'CNS do Profissional deve conter exatamente 15 dígitos numéricos válidos.' })
       return
     }
 
     const cboClean = cboProfissional.replace(/\D/g, '')
-    if (cboClean.length !== 6) {
+    if (cboClean.length > 0 && cboClean.length !== 6) {
       setMensagem({ tipo: 'error', texto: 'CBO do Profissional deve conter exatamente 6 dígitos numéricos.' })
       return
     }
@@ -133,7 +128,7 @@ export default function CadastrarEstabelecimento() {
       orgao_destino: orgaoDestino.trim(),
       indicador_destino: indicadorDestino,
       codigo_emissor: codigoEmissor,
-      profissional_nome: profissional.trim().toUpperCase(),
+      profissional_nome: profissional.trim() ? profissional.trim().toUpperCase() : '',
       profissional_cns: cnsClean,
       profissional_cbo: cboClean
     }
@@ -309,14 +304,14 @@ export default function CadastrarEstabelecimento() {
 
               <div style={{ margin: '0.5rem 0', borderTop: '1px dashed #E6EFF3', paddingTop: '1rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#008E7B', letterSpacing: '0.02em' }}>
-                  DADOS DO PROFISSIONAL AUTORIZADOR
+                  DADOS DO PROFISSIONAL AUTORIZADOR (OPCIONAL)
                 </span>
               </div>
 
               {/* Linha 3: Profissional */}
               <div className={styles.fieldsRow}>
                 <div className={styles.fieldGroup} style={{ flex: 2 }}>
-                  <label className={styles.fieldLabel}>Profissional Autorizador Nome Completo *</label>
+                  <label className={styles.fieldLabel}>Profissional Autorizador Nome Completo</label>
                   <input
                     type="text"
                     maxLength={30}
@@ -327,7 +322,7 @@ export default function CadastrarEstabelecimento() {
                   />
                 </div>
                 <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel}>CNS do Autorizador (15 dígitos) *</label>
+                  <label className={styles.fieldLabel}>CNS do Autorizador (15 dígitos)</label>
                   <input
                     type="text"
                     maxLength={15}
@@ -338,7 +333,7 @@ export default function CadastrarEstabelecimento() {
                   />
                 </div>
                 <div className={styles.fieldGroup} style={{ flex: '0 0 160px' }}>
-                  <label className={styles.fieldLabel}>CBO (6 dígitos) *</label>
+                  <label className={styles.fieldLabel}>CBO (6 dígitos)</label>
                   <input
                     type="text"
                     maxLength={6}
@@ -407,10 +402,20 @@ export default function CadastrarEstabelecimento() {
                         <div style={{ color: '#657D93' }}>Emissor: {item.codigo_emissor}</div>
                       </td>
                       <td style={{ padding: '0.75rem', fontSize: '0.8rem' }}>
-                        <div style={{ fontWeight: '600' }}>{item.profissional_nome}</div>
-                        <div style={{ color: '#657D93', fontFamily: 'monospace' }}>
-                          CNS: {item.profissional_cns} • CBO: {item.profissional_cbo}
-                        </div>
+                        {item.profissional_nome || item.profissional_cns ? (
+                          <>
+                            <div style={{ fontWeight: '600' }}>{item.profissional_nome || 'Nome não informado'}</div>
+                            <div style={{ color: '#657D93', fontFamily: 'monospace' }}>
+                              {item.profissional_cns ? `CNS: ${item.profissional_cns}` : ''}
+                              {item.profissional_cns && item.profissional_cbo ? ' • ' : ''}
+                              {item.profissional_cbo ? `CBO: ${item.profissional_cbo}` : ''}
+                            </div>
+                          </>
+                        ) : (
+                          <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                            Não informado
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
