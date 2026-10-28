@@ -252,8 +252,44 @@ export default function GerarAPAC() {
 
     try {
       const faixa = modoNumeracao === 'faixa' ? faixas.find(f => f.id === faixaSelecionadaId) : null
-      let curBase = faixa ? BigInt(faixa.proximo_numero) : 0n
-      const excluidosSet = new Set((faixa?.numeros_excluidos || []).map(String))
+      let numerosDisponiveis = []
+
+      if (modoNumeracao === 'faixa' && faixa) {
+        const sequencias = (faixa.sequencias && Array.isArray(faixa.sequencias) && faixa.sequencias.length > 0)
+          ? faixa.sequencias
+          : [{ de: faixa.numero_inicial, ate: faixa.numero_final }]
+
+        const excluidosSet = new Set((faixa.numeros_excluidos || []).map(String))
+        const proximoStr = String(faixa.proximo_numero || '')
+
+        const todosNumeros = []
+        for (const seq of sequencias) {
+          const inicio = BigInt(seq.de || seq.numero_inicial)
+          const fim = BigInt(seq.ate || seq.numero_final)
+          for (let n = inicio; n <= fim; n++) {
+            todosNumeros.push(String(n))
+          }
+        }
+
+        const proximoIdx = todosNumeros.indexOf(proximoStr)
+        const corteIdx = proximoIdx >= 0 ? proximoIdx : 0
+
+        for (let i = corteIdx; i < todosNumeros.length; i++) {
+          const num = todosNumeros[i]
+          if (!excluidosSet.has(num)) {
+            numerosDisponiveis.push(num)
+          }
+        }
+
+        if (numerosDisponiveis.length < planilha.dados.length) {
+          setErros(prev => ({ 
+            ...prev, 
+            faixa: `O lote possui apenas ${numerosDisponiveis.length} número(s) disponível(is). A planilha possui ${planilha.dados.length} linhas.` 
+          }))
+          setGerando(false)
+          return
+        }
+      }
 
       const cabecalho = {
         competencia, orgaoOrigem, cnes, cnpj, orgaoDestino, indicadorDestino, dataGeracao,
@@ -266,17 +302,14 @@ export default function GerarAPAC() {
       let somaControle = BigInt(0)
       const atendimentos = []
 
-      for (const linhaExcel of planilha.dados) {
+      for (let i = 0; i < planilha.dados.length; i++) {
+        const linhaExcel = planilha.dados[i]
         let numeroApac
         if (modoNumeracao === 'faixa') {
-          // Pula numerações canceladas/excluídas da faixa
-          while (excluidosSet.has(String(curBase))) {
-            curBase++
-          }
-          const base12 = String(curBase).padStart(12, '0')
+          const baseStr = numerosDisponiveis[i]
+          const base12 = baseStr.padStart(12, '0')
           const dv = calcularDV(base12)
           numeroApac = base12 + dv
-          curBase++
         } else {
           // Lê diretamente da planilha e normaliza para 13 dígitos sem hífen
           const raw = String(linhaExcel['NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)'] || '').replace(/\D/g, '')
@@ -353,13 +386,12 @@ export default function GerarAPAC() {
 
       // Atualiza banco apenas no modo faixa
       if (modoNumeracao === 'faixa' && faixa) {
-        // Se após o consumo curBase parar em um número excluído, avança até o próximo disponível
-        while (excluidosSet.has(String(curBase)) && curBase <= BigInt(faixa.numero_final)) {
-          curBase++
-        }
+        const proximoRestante = qtdRegistros < numerosDisponiveis.length 
+          ? numerosDisponiveis[qtdRegistros] 
+          : faixa.numero_final
         const novoRestantes = Math.max(0, faixa.numeros_restantes - qtdRegistros)
         await supabase.from('faixas_apac').update({
-          proximo_numero: String(curBase),
+          proximo_numero: String(proximoRestante),
           numeros_restantes: novoRestantes,
           ativo: novoRestantes > 0
         }).eq('id', faixa.id)
