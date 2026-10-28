@@ -60,7 +60,8 @@ export default function CadastrarFaixa() {
       return
     }
 
-    const registrosParaInserir = []
+    const sequenciasValidadas = []
+    let totalGeral = 0
 
     for (let i = 0; i < sequencias.length; i++) {
       const seq = sequencias[i]
@@ -81,31 +82,60 @@ export default function CadastrarFaixa() {
       }
 
       const total = Number(fim - inicio) + 1
+      totalGeral += total
 
-      registrosParaInserir.push({
-        lote: lote.trim(),
-        estabelecimento: estabelecimento.trim() || null,
-        numero_inicial: inicio.toString(),
-        numero_final: fim.toString(),
-        proximo_numero: inicio.toString(),
-        total_numeros: total,
-        numeros_restantes: total,
-        numeros_excluidos: [],
-        ativo: true
+      sequenciasValidadas.push({
+        de: inicio.toString(),
+        ate: fim.toString(),
+        total
       })
+    }
+
+    // Ordena sequências por número inicial
+    sequenciasValidadas.sort((a, b) => (BigInt(a.de) < BigInt(b.de) ? -1 : 1))
+
+    // Valida se não há sobreposição de sequências
+    for (let i = 0; i < sequenciasValidadas.length - 1; i++) {
+      if (BigInt(sequenciasValidadas[i].ate) >= BigInt(sequenciasValidadas[i + 1].de)) {
+        setMensagem({ 
+          tipo: 'error', 
+          texto: 'Existe sobreposição entre as sequências informadas. Por favor, verifique os intervalos.' 
+        })
+        return
+      }
     }
 
     setLoading(true)
 
-    const { error } = await supabase.from('faixas_apac').insert(registrosParaInserir)
+    const registroParaInserir = {
+      lote: lote.trim(),
+      estabelecimento: estabelecimento.trim() || null,
+      numero_inicial: sequenciasValidadas[0].de,
+      numero_final: sequenciasValidadas[sequenciasValidadas.length - 1].ate,
+      proximo_numero: sequenciasValidadas[0].de,
+      total_numeros: totalGeral,
+      numeros_restantes: totalGeral,
+      numeros_excluidos: [],
+      sequencias: sequenciasValidadas,
+      ativo: true
+    }
+
+    const { error } = await supabase.from('faixas_apac').insert([registroParaInserir])
 
     if (error) {
-      setMensagem({ tipo: 'error', texto: 'Erro ao salvar: ' + error.message })
+      if (error.message && error.message.toLowerCase().includes('sequencias')) {
+        setMensagem({
+          tipo: 'error',
+          texto: 'A coluna "sequencias" precisa ser adicionada no Supabase. Execute no SQL Editor: ALTER TABLE faixas_apac ADD COLUMN IF NOT EXISTS sequencias JSONB;'
+        })
+      } else {
+        setMensagem({ tipo: 'error', texto: 'Erro ao salvar: ' + error.message })
+      }
     } else {
       setMensagem({ 
         tipo: 'success', 
-        texto: registrosParaInserir.length > 1 
-          ? `${registrosParaInserir.length} sequências cadastradas com sucesso para o lote!` 
+        texto: sequenciasValidadas.length > 1 
+          ? `Lote cadastrado com sucesso com ${sequenciasValidadas.length} sequências (${totalGeral} números no mesmo lote)!` 
           : 'Faixa cadastrada com sucesso!' 
       })
       setLote('')
@@ -141,25 +171,45 @@ export default function CadastrarFaixa() {
     carregarFaixas()
   }
 
+  function obterTodosNumerosDaFaixa(faixa) {
+    if (!faixa) return []
+    const sequencias = (faixa.sequencias && Array.isArray(faixa.sequencias) && faixa.sequencias.length > 0)
+      ? faixa.sequencias
+      : [{ de: faixa.numero_inicial, ate: faixa.numero_final }]
+
+    const todos = []
+    for (const seq of sequencias) {
+      const inicio = BigInt(seq.de || seq.numero_inicial)
+      const fim = BigInt(seq.ate || seq.numero_final)
+      for (let n = inicio; n <= fim; n++) {
+        todos.push(String(n))
+      }
+    }
+    return todos
+  }
+
   function gerarListaNumeros(faixa) {
     if (!faixa) return []
     const lista = []
     const maxToRender = 2000
     
-    let atual = BigInt(faixa.numero_inicial)
-    const final = BigInt(faixa.numero_final)
-    const proximo = BigInt(faixa.proximo_numero)
+    const todosNumeros = obterTodosNumerosDaFaixa(faixa)
     const excluidosSet = new Set((faixa.numeros_excluidos || []).map(String))
-    let count = 0
+    const proximoStr = String(faixa.proximo_numero || '')
     
-    while (atual <= final && count < maxToRender) {
-      const base12 = String(atual).padStart(12, '0')
+    const proximoIdx = todosNumeros.indexOf(proximoStr)
+    const corteIdx = faixa.numeros_restantes === 0 
+      ? todosNumeros.length 
+      : (proximoIdx >= 0 ? proximoIdx : 0)
+    
+    for (let i = 0; i < todosNumeros.length && i < maxToRender; i++) {
+      const numStr = todosNumeros[i]
+      const base12 = numStr.padStart(12, '0')
       const dv = calcularDV(base12)
       const numeroAPAC = formatarAPAC(base12, dv)
-      const numStr = String(atual)
       
       const cancelado = excluidosSet.has(numStr)
-      const utilizado = !cancelado && atual < proximo
+      const utilizado = !cancelado && i < corteIdx
       const disponivel = !cancelado && !utilizado
       
       lista.push({
@@ -169,9 +219,6 @@ export default function CadastrarFaixa() {
         cancelado,
         disponivel
       })
-      
-      atual++
-      count++
     }
     return lista
   }
@@ -187,23 +234,29 @@ export default function CadastrarFaixa() {
     try {
       const anteriores = (faixa.numeros_excluidos || []).map(String)
       const novoExcluidos = Array.from(new Set([...anteriores, ...numerosParaCancelar.map(String)]))
-      
-      // Recalcula números restantes com base nos números não cancelados que ainda estão à frente ou iguais a proximo_numero
       const excluidosSet = new Set(novoExcluidos)
+
+      const todosNumeros = obterTodosNumerosDaFaixa(faixa)
+      const proximoStr = String(faixa.proximo_numero || '')
+      const proximoIdx = todosNumeros.indexOf(proximoStr)
+      const corteIdx = faixa.numeros_restantes === 0 
+        ? todosNumeros.length 
+        : (proximoIdx >= 0 ? proximoIdx : 0)
+
       let restantes = 0
-      let cur = BigInt(faixa.proximo_numero)
-      const final = BigInt(faixa.numero_final)
-      while (cur <= final) {
-        if (!excluidosSet.has(String(cur))) {
+      let novoProximo = null
+      for (let i = corteIdx; i < todosNumeros.length; i++) {
+        const num = todosNumeros[i]
+        if (!excluidosSet.has(num)) {
           restantes++
+          if (!novoProximo) {
+            novoProximo = num
+          }
         }
-        cur++
       }
 
-      // Se o próximo número atual está na lista de excluídos, avança proximo_numero até o próximo disponível
-      let novoProximo = BigInt(faixa.proximo_numero)
-      while (excluidosSet.has(String(novoProximo)) && novoProximo <= final) {
-        novoProximo++
+      if (!novoProximo) {
+        novoProximo = faixa.numero_final
       }
 
       const updateData = {
@@ -408,7 +461,14 @@ export default function CadastrarFaixa() {
                 <tbody>
                   {faixas.map(f => (
                     <tr key={f.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      <td style={{ padding: '0.75rem', fontWeight: '500' }}>{f.lote}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: '500' }}>
+                        <span>{f.lote}</span>
+                        {f.sequencias && f.sequencias.length > 1 && (
+                          <span style={{ fontSize: '0.7rem', color: '#008E7B', background: '#EFFFF6', border: '1px solid #A7F3D0', padding: '0.15rem 0.45rem', borderRadius: '4px', marginLeft: '0.5rem', fontWeight: '600' }}>
+                            {f.sequencias.length} sequências
+                          </span>
+                        )}
+                      </td>
                       <td style={{ padding: '0.75rem' }}>{f.estabelecimento || '-'}</td>
                       <td style={{ padding: '0.75rem' }}>
                         <span style={{ fontWeight: '600', color: f.numeros_restantes === 0 ? '#ef4444' : '#008E7B' }}>
@@ -479,6 +539,15 @@ export default function CadastrarFaixa() {
                     {faixaDetalhes.estabelecimento ? `${faixaDetalhes.estabelecimento} • ` : ''}
                     Listagem de números da faixa (Exibindo até 2000 itens).
                   </p>
+                  {faixaDetalhes.sequencias && faixaDetalhes.sequencias.length > 1 && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      {faixaDetalhes.sequencias.map((s, idx) => (
+                        <span key={idx} style={{ fontSize: '0.72rem', background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '0.15rem 0.45rem', borderRadius: '4px', color: '#1E293B', fontFamily: 'monospace' }}>
+                          Seq #{idx + 1}: {formatarAPAC(s.de, calcularDV(s.de))} a {formatarAPAC(s.ate, calcularDV(s.ate))} ({s.total} nº)
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {temSelecionados && (
                   <button
