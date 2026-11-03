@@ -3,6 +3,23 @@ import { supabase } from '../lib/supabaseClient'
 import { parsearAPAC, calcularDV, formatarAPAC } from '../utils/apacUtils'
 import styles from '../App.module.css'
 
+function formatarDataHora(dataIso) {
+  if (!dataIso) return 'Não informada'
+  try {
+    const d = new Date(dataIso)
+    if (isNaN(d.getTime())) return String(dataIso)
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return String(dataIso)
+  }
+}
+
 export default function CadastrarFaixa() {
   const [lote, setLote] = useState('')
   const [estabelecimento, setEstabelecimento] = useState('')
@@ -122,6 +139,14 @@ export default function CadastrarFaixa() {
 
     setLoading(true)
 
+    const { data: { user } } = await supabase.auth.getUser()
+    const emailUsuario = user?.email || user?.user_metadata?.email || null
+
+    const sequenciasComUsuario = sequenciasValidadas.map(s => ({
+      ...s,
+      usuario: emailUsuario
+    }))
+
     const registroParaInserir = {
       lote: lote.trim(),
       estabelecimento: estabelecimento.trim() || null,
@@ -131,11 +156,19 @@ export default function CadastrarFaixa() {
       total_numeros: totalGeral,
       numeros_restantes: totalGeral,
       numeros_excluidos: [],
-      sequencias: sequenciasValidadas,
-      ativo: true
+      sequencias: sequenciasComUsuario,
+      ativo: true,
+      usuario: emailUsuario
     }
 
-    const { error } = await supabase.from('faixas_apac').insert([registroParaInserir])
+    let { error } = await supabase.from('faixas_apac').insert([registroParaInserir])
+
+    if (error && error.message && error.message.toLowerCase().includes('usuario')) {
+      const registroSemUsuario = { ...registroParaInserir }
+      delete registroSemUsuario.usuario
+      const res = await supabase.from('faixas_apac').insert([registroSemUsuario])
+      error = res.error
+    }
 
     if (error) {
       if (error.message && error.message.toLowerCase().includes('sequencias')) {
@@ -569,6 +602,20 @@ export default function CadastrarFaixa() {
                     {faixaDetalhes.estabelecimento ? `${faixaDetalhes.estabelecimento} • ` : ''}
                     Listagem de números da faixa (Exibindo até 2000 itens).
                   </p>
+                  <div style={{ marginTop: '0.65rem', display: 'flex', flexWrap: 'wrap', gap: '1.25rem', fontSize: '0.8125rem', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
+                    <div>
+                      <span style={{ color: '#64748B', fontWeight: '500' }}>Usuário: </span>
+                      <strong style={{ color: '#0F172A' }}>
+                        {faixaDetalhes.usuario || faixaDetalhes.criado_por || faixaDetalhes.sequencias?.[0]?.usuario || 'Não informado'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#64748B', fontWeight: '500' }}>Data de Inclusão: </span>
+                      <strong style={{ color: '#0F172A' }}>
+                        {formatarDataHora(faixaDetalhes.criado_em || faixaDetalhes.created_at)}
+                      </strong>
+                    </div>
+                  </div>
                   {faixaDetalhes.sequencias && faixaDetalhes.sequencias.length > 1 && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                       {faixaDetalhes.sequencias.map((s, idx) => {
