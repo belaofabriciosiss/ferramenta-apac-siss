@@ -1,4 +1,9 @@
-export function calcularDV(numero12) {
+export function calcularDV(numero12, dvInicial = null, numeroInicial = null) {
+  if (dvInicial !== null && dvInicial !== undefined && numeroInicial !== null && numeroInicial !== undefined) {
+    const offset = Number(BigInt(numero12) - BigInt(numeroInicial))
+    const resto = ((Number(dvInicial) + offset) % 11 + 11) % 11
+    return resto === 10 ? 0 : resto
+  }
   const resto = Number(BigInt(numero12) % 11n)
   return resto === 10 ? 0 : resto
 }
