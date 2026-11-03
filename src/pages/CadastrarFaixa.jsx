@@ -82,11 +82,26 @@ export default function CadastrarFaixa() {
       }
 
       const total = Number(fim - inicio) + 1
+      const offset = Number(fim - inicio)
+      const dvEsperadoFim = ((parseDe.dvInformado + offset) % 11 + 11) % 11 === 10
+        ? 0
+        : ((parseDe.dvInformado + offset) % 11 + 11) % 11
+
+      if (parseAte.dvInformado !== null && parseAte.dvInformado !== undefined && parseAte.dvInformado !== dvEsperadoFim) {
+        setMensagem({
+          tipo: 'error',
+          texto: `Sequência ${i + 1}: O dígito verificador final informado (-${parseAte.dvInformado}) não corresponde à sequência. O dígito final esperado para ${parseAte.base12} é -${dvEsperadoFim}.`
+        })
+        return
+      }
+
       totalGeral += total
 
       sequenciasValidadas.push({
         de: inicio.toString(),
         ate: fim.toString(),
+        dv_de: parseDe.dvInformado,
+        dv_ate: parseAte.dvInformado,
         total
       })
     }
@@ -175,14 +190,33 @@ export default function CadastrarFaixa() {
     if (!faixa) return []
     const sequencias = (faixa.sequencias && Array.isArray(faixa.sequencias) && faixa.sequencias.length > 0)
       ? faixa.sequencias
-      : [{ de: faixa.numero_inicial, ate: faixa.numero_final }]
+      : [{ 
+          de: faixa.numero_inicial, 
+          ate: faixa.numero_final,
+          dv_de: faixa.dv_inicial,
+          dv_ate: faixa.dv_final
+        }]
 
     const todos = []
     for (const seq of sequencias) {
       const inicio = BigInt(seq.de || seq.numero_inicial)
       const fim = BigInt(seq.ate || seq.numero_final)
+      const seqInicioStr = (seq.de || seq.numero_inicial).toString()
+      const dvDe = seq.dv_de !== undefined && seq.dv_de !== null ? Number(seq.dv_de) : null
+
       for (let n = inicio; n <= fim; n++) {
-        todos.push(String(n))
+        const numStr = String(n)
+        const base12 = numStr.padStart(12, '0')
+        const dv = dvDe !== null 
+          ? calcularDV(base12, dvDe, seqInicioStr)
+          : calcularDV(base12)
+        
+        todos.push({
+          numero: numStr,
+          base12: base12,
+          dv: dv,
+          numeroAPAC: formatarAPAC(base12, dv)
+        })
       }
     }
     return todos
@@ -193,28 +227,24 @@ export default function CadastrarFaixa() {
     const lista = []
     const maxToRender = 2000
     
-    const todosNumeros = obterTodosNumerosDaFaixa(faixa)
+    const todosItens = obterTodosNumerosDaFaixa(faixa)
     const excluidosSet = new Set((faixa.numeros_excluidos || []).map(String))
     const proximoStr = String(faixa.proximo_numero || '')
     
-    const proximoIdx = todosNumeros.indexOf(proximoStr)
+    const proximoIdx = todosItens.findIndex(item => item.numero === proximoStr)
     const corteIdx = faixa.numeros_restantes === 0 
-      ? todosNumeros.length 
+      ? todosItens.length 
       : (proximoIdx >= 0 ? proximoIdx : 0)
     
-    for (let i = 0; i < todosNumeros.length && i < maxToRender; i++) {
-      const numStr = todosNumeros[i]
-      const base12 = numStr.padStart(12, '0')
-      const dv = calcularDV(base12)
-      const numeroAPAC = formatarAPAC(base12, dv)
-      
-      const cancelado = excluidosSet.has(numStr)
+    for (let i = 0; i < todosItens.length && i < maxToRender; i++) {
+      const item = todosItens[i]
+      const cancelado = excluidosSet.has(item.numero)
       const utilizado = !cancelado && i < corteIdx
       const disponivel = !cancelado && !utilizado
       
       lista.push({
-        numero: numStr,
-        numeroAPAC,
+        numero: item.numero,
+        numeroAPAC: item.numeroAPAC,
         utilizado,
         cancelado,
         disponivel
@@ -236,21 +266,21 @@ export default function CadastrarFaixa() {
       const novoExcluidos = Array.from(new Set([...anteriores, ...numerosParaCancelar.map(String)]))
       const excluidosSet = new Set(novoExcluidos)
 
-      const todosNumeros = obterTodosNumerosDaFaixa(faixa)
+      const todosItens = obterTodosNumerosDaFaixa(faixa)
       const proximoStr = String(faixa.proximo_numero || '')
-      const proximoIdx = todosNumeros.indexOf(proximoStr)
+      const proximoIdx = todosItens.findIndex(item => item.numero === proximoStr)
       const corteIdx = faixa.numeros_restantes === 0 
-        ? todosNumeros.length 
+        ? todosItens.length 
         : (proximoIdx >= 0 ? proximoIdx : 0)
 
       let restantes = 0
       let novoProximo = null
-      for (let i = corteIdx; i < todosNumeros.length; i++) {
-        const num = todosNumeros[i]
-        if (!excluidosSet.has(num)) {
+      for (let i = corteIdx; i < todosItens.length; i++) {
+        const item = todosItens[i]
+        if (!excluidosSet.has(item.numero)) {
           restantes++
           if (!novoProximo) {
-            novoProximo = num
+            novoProximo = item.numero
           }
         }
       }
@@ -541,11 +571,15 @@ export default function CadastrarFaixa() {
                   </p>
                   {faixaDetalhes.sequencias && faixaDetalhes.sequencias.length > 1 && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                      {faixaDetalhes.sequencias.map((s, idx) => (
-                        <span key={idx} style={{ fontSize: '0.72rem', background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '0.15rem 0.45rem', borderRadius: '4px', color: '#1E293B', fontFamily: 'monospace' }}>
-                          Seq #{idx + 1}: {formatarAPAC(s.de, calcularDV(s.de))} a {formatarAPAC(s.ate, calcularDV(s.ate))} ({s.total} nº)
-                        </span>
-                      ))}
+                      {faixaDetalhes.sequencias.map((s, idx) => {
+                        const dvDe = s.dv_de !== undefined && s.dv_de !== null ? s.dv_de : calcularDV(s.de)
+                        const dvAte = s.dv_ate !== undefined && s.dv_ate !== null ? s.dv_ate : calcularDV(s.ate)
+                        return (
+                          <span key={idx} style={{ fontSize: '0.72rem', background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '0.15rem 0.45rem', borderRadius: '4px', color: '#1E293B', fontFamily: 'monospace' }}>
+                            Seq #{idx + 1}: {formatarAPAC(s.de, dvDe)} a {formatarAPAC(s.ate, dvAte)} ({s.total} nº)
+                          </span>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
