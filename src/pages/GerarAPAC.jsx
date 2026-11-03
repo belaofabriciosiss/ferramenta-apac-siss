@@ -257,27 +257,40 @@ export default function GerarAPAC() {
       if (modoNumeracao === 'faixa' && faixa) {
         const sequencias = (faixa.sequencias && Array.isArray(faixa.sequencias) && faixa.sequencias.length > 0)
           ? faixa.sequencias
-          : [{ de: faixa.numero_inicial, ate: faixa.numero_final }]
+          : [{ de: faixa.numero_inicial, ate: faixa.numero_final, dv_de: faixa.dv_inicial, dv_ate: faixa.dv_final }]
 
         const excluidosSet = new Set((faixa.numeros_excluidos || []).map(String))
         const proximoStr = String(faixa.proximo_numero || '')
 
-        const todosNumeros = []
+        const todosItens = []
         for (const seq of sequencias) {
           const inicio = BigInt(seq.de || seq.numero_inicial)
           const fim = BigInt(seq.ate || seq.numero_final)
+          const seqInicioStr = (seq.de || seq.numero_inicial).toString()
+          const dvDe = seq.dv_de !== undefined && seq.dv_de !== null ? Number(seq.dv_de) : null
+
           for (let n = inicio; n <= fim; n++) {
-            todosNumeros.push(String(n))
+            const numStr = String(n)
+            const base12 = numStr.padStart(12, '0')
+            const dv = dvDe !== null 
+              ? calcularDV(base12, dvDe, seqInicioStr)
+              : calcularDV(base12)
+            todosItens.push({
+              numero: numStr,
+              base12,
+              dv,
+              numeroApac: base12 + String(dv)
+            })
           }
         }
 
-        const proximoIdx = todosNumeros.indexOf(proximoStr)
+        const proximoIdx = todosItens.findIndex(item => item.numero === proximoStr)
         const corteIdx = proximoIdx >= 0 ? proximoIdx : 0
 
-        for (let i = corteIdx; i < todosNumeros.length; i++) {
-          const num = todosNumeros[i]
-          if (!excluidosSet.has(num)) {
-            numerosDisponiveis.push(num)
+        for (let i = corteIdx; i < todosItens.length; i++) {
+          const item = todosItens[i]
+          if (!excluidosSet.has(item.numero)) {
+            numerosDisponiveis.push(item)
           }
         }
 
@@ -306,10 +319,7 @@ export default function GerarAPAC() {
         const linhaExcel = planilha.dados[i]
         let numeroApac
         if (modoNumeracao === 'faixa') {
-          const baseStr = numerosDisponiveis[i]
-          const base12 = baseStr.padStart(12, '0')
-          const dv = calcularDV(base12)
-          numeroApac = base12 + dv
+          numeroApac = numerosDisponiveis[i].numeroApac
         } else {
           // Lê diretamente da planilha e normaliza para 13 dígitos sem hífen
           const raw = String(linhaExcel['NUMERO APAC (12 DIGITOS E 1 DIGITO VERIFICADOR)'] || '').replace(/\D/g, '')
@@ -387,7 +397,7 @@ export default function GerarAPAC() {
       // Atualiza banco apenas no modo faixa
       if (modoNumeracao === 'faixa' && faixa) {
         const proximoRestante = qtdRegistros < numerosDisponiveis.length 
-          ? numerosDisponiveis[qtdRegistros] 
+          ? numerosDisponiveis[qtdRegistros].numero 
           : faixa.numero_final
         const novoRestantes = Math.max(0, faixa.numeros_restantes - qtdRegistros)
         await supabase.from('faixas_apac').update({
