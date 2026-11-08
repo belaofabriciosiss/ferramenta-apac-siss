@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabaseClient'
-import { calcularDV, validarCNS } from '../utils/apacUtils'
+import { calcularDV, validarCNS, determinarRestoInicial } from '../utils/apacUtils'
 import { gerarLinha01, gerarLinha14, gerarLinha06, gerarLinhas13, getProcedimentos13Completo, normalizarProcedimento, getExtensaoMes, deveIncluirFixo0301, getProcFixo } from '../utils/txtGenerator'
 import { executarConsistencia, removerDuplicidades } from '../utils/consistenciaValidator'
 import { gerarScriptExportarId } from '../utils/exportarIdGenerator'
@@ -268,12 +268,17 @@ export default function GerarAPAC() {
           const fim = BigInt(seq.ate || seq.numero_final)
           const seqInicioStr = (seq.de || seq.numero_inicial).toString()
           const dvDe = seq.dv_de !== undefined && seq.dv_de !== null ? Number(seq.dv_de) : null
+          const dvAte = seq.dv_ate !== undefined && seq.dv_ate !== null ? Number(seq.dv_ate) : null
+
+          const restoDe = seq.resto_de !== undefined && seq.resto_de !== null
+            ? Number(seq.resto_de)
+            : (dvDe !== null ? determinarRestoInicial(seqInicioStr, dvDe, fim.toString(), dvAte) : null)
 
           for (let n = inicio; n <= fim; n++) {
             const numStr = String(n)
             const base12 = numStr.padStart(12, '0')
-            const dv = dvDe !== null 
-              ? calcularDV(base12, dvDe, seqInicioStr)
+            const dv = restoDe !== null 
+              ? calcularDV(base12, restoDe, seqInicioStr)
               : calcularDV(base12)
             todosItens.push({
               numero: numStr,
