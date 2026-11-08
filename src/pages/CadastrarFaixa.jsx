@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { parsearAPAC, calcularDV, formatarAPAC } from '../utils/apacUtils'
+import { parsearAPAC, calcularDV, formatarAPAC, determinarRestoInicial } from '../utils/apacUtils'
 import styles from '../App.module.css'
 
 function formatarDataHora(dataIso) {
@@ -100,14 +100,40 @@ export default function CadastrarFaixa() {
 
       const total = Number(fim - inicio) + 1
       const offset = Number(fim - inicio)
-      const dvEsperadoFim = ((parseDe.dvInformado + offset) % 11 + 11) % 11 === 10
-        ? 0
-        : ((parseDe.dvInformado + offset) % 11 + 11) % 11
+
+      let restoInicial = parseDe.dvInformado
+      let dvEsperadoFim = ((restoInicial + offset) % 11 + 11) % 11
+      dvEsperadoFim = dvEsperadoFim === 10 ? 0 : dvEsperadoFim
+
+      if (parseDe.dvInformado === 0) {
+        // No cálculo de Módulo 11 do SUS/APAC, quando o resto é 10 o DV exibido é 0.
+        // Assim, o número inicial com dígito -0 pode ter resto 0 ou resto 10.
+        const r0 = ((0 + offset) % 11 + 11) % 11
+        const dv0 = r0 === 10 ? 0 : r0
+
+        const r10 = ((10 + offset) % 11 + 11) % 11
+        const dv10 = r10 === 10 ? 0 : r10
+
+        if (parseAte.dvInformado === dv10) {
+          restoInicial = 10
+          dvEsperadoFim = dv10
+        } else if (parseAte.dvInformado === dv0) {
+          restoInicial = 0
+          dvEsperadoFim = dv0
+        } else {
+          restoInicial = determinarRestoInicial(inicio.toString(), 0, fim.toString(), parseAte.dvInformado)
+          const r = ((restoInicial + offset) % 11 + 11) % 11
+          dvEsperadoFim = r === 10 ? 0 : r
+        }
+      }
 
       if (parseAte.dvInformado !== null && parseAte.dvInformado !== undefined && parseAte.dvInformado !== dvEsperadoFim) {
+        const msgEsperado = parseDe.dvInformado === 0 && (((0 + offset) % 11 + 11) % 11 === 10 ? 0 : ((0 + offset) % 11 + 11) % 11) !== (((10 + offset) % 11 + 11) % 11 === 10 ? 0 : ((10 + offset) % 11 + 11) % 11)
+          ? `-${(((0 + offset) % 11 + 11) % 11 === 10 ? 0 : ((0 + offset) % 11 + 11) % 11)} ou -${(((10 + offset) % 11 + 11) % 11 === 10 ? 0 : ((10 + offset) % 11 + 11) % 11)}`
+          : `-${dvEsperadoFim}`
         setMensagem({
           tipo: 'error',
-          texto: `Sequência ${i + 1}: O dígito verificador final informado (-${parseAte.dvInformado}) não corresponde à sequência. O dígito final esperado para ${parseAte.base12} é -${dvEsperadoFim}.`
+          texto: `Sequência ${i + 1}: O dígito verificador final informado (-${parseAte.dvInformado}) não corresponde à sequência. O dígito final esperado para ${parseAte.base12} é ${msgEsperado}.`
         })
         return
       }
@@ -119,6 +145,7 @@ export default function CadastrarFaixa() {
         ate: fim.toString(),
         dv_de: parseDe.dvInformado,
         dv_ate: parseAte.dvInformado,
+        resto_de: restoInicial,
         total
       })
     }
@@ -236,12 +263,17 @@ export default function CadastrarFaixa() {
       const fim = BigInt(seq.ate || seq.numero_final)
       const seqInicioStr = (seq.de || seq.numero_inicial).toString()
       const dvDe = seq.dv_de !== undefined && seq.dv_de !== null ? Number(seq.dv_de) : null
+      const dvAte = seq.dv_ate !== undefined && seq.dv_ate !== null ? Number(seq.dv_ate) : null
+
+      const restoDe = seq.resto_de !== undefined && seq.resto_de !== null
+        ? Number(seq.resto_de)
+        : (dvDe !== null ? determinarRestoInicial(seqInicioStr, dvDe, fim.toString(), dvAte) : null)
 
       for (let n = inicio; n <= fim; n++) {
         const numStr = String(n)
         const base12 = numStr.padStart(12, '0')
-        const dv = dvDe !== null 
-          ? calcularDV(base12, dvDe, seqInicioStr)
+        const dv = restoDe !== null 
+          ? calcularDV(base12, restoDe, seqInicioStr)
           : calcularDV(base12)
         
         todos.push({
@@ -619,8 +651,12 @@ export default function CadastrarFaixa() {
                   {faixaDetalhes.sequencias && faixaDetalhes.sequencias.length > 1 && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                       {faixaDetalhes.sequencias.map((s, idx) => {
-                        const dvDe = s.dv_de !== undefined && s.dv_de !== null ? s.dv_de : calcularDV(s.de)
-                        const dvAte = s.dv_ate !== undefined && s.dv_ate !== null ? s.dv_ate : calcularDV(s.ate)
+                        const dvDe = s.dv_de !== undefined && s.dv_de !== null 
+                          ? (Number(s.dv_de) === 10 ? 0 : Number(s.dv_de)) 
+                          : calcularDV(s.de)
+                        const dvAte = s.dv_ate !== undefined && s.dv_ate !== null 
+                          ? (Number(s.dv_ate) === 10 ? 0 : Number(s.dv_ate)) 
+                          : calcularDV(s.ate)
                         return (
                           <span key={idx} style={{ fontSize: '0.72rem', background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '0.15rem 0.45rem', borderRadius: '4px', color: '#1E293B', fontFamily: 'monospace' }}>
                             Seq #{idx + 1}: {formatarAPAC(s.de, dvDe)} a {formatarAPAC(s.ate, dvAte)} ({s.total} nº)
