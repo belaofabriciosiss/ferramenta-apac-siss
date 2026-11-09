@@ -135,7 +135,25 @@ export function gerarLinha14(linhaExcel, numeroApac, cabecalho) {
   linha += padNum(linhaExcel['RAÇA/COR'], 2) // RAÇA/COR
   linha += padText(linhaExcel['NOME DO RESPONSÁVEL'], 30) // NOME DO RESPONSÁVEL
   linha += padNum(linhaExcel['CÓDIGO DA NACIONALIDADE'], 3) // NACIONALIDADE
-  linha += padText(linhaExcel['CÓDIGO DA ETNIA'], 4) // ETNIA
+  // CÓDIGO DA ETNIA: quando tiver 3 dígitos (ou menos de 4), insere '0' à esquerda para completar 4 dígitos; se vazio, 4 espaços em branco
+  const etniaValor = linhaExcel['CÓDIGO DA ETNIA'] !== undefined 
+    ? linhaExcel['CÓDIGO DA ETNIA'] 
+    : (linhaExcel['CODIGO DA ETNIA'] || '')
+  const etniaLimpa = String(etniaValor || '').trim()
+  const etniaDigitos = etniaLimpa.replace(/\D/g, '')
+  let etniaFormatada = ''
+  if (!etniaLimpa) {
+    etniaFormatada = padText('', 4)
+  } else if (etniaDigitos.length === 3) {
+    etniaFormatada = '0' + etniaDigitos
+  } else if (etniaDigitos.length === 4) {
+    etniaFormatada = etniaDigitos
+  } else if (etniaDigitos.length > 0 && etniaDigitos.length < 3) {
+    etniaFormatada = etniaDigitos.padStart(4, '0')
+  } else {
+    etniaFormatada = padText(etniaLimpa, 4)
+  }
+  linha += etniaFormatada // ETNIA (4 caracteres)
   linha += padNum(linhaExcel['CÓDIGO DO LOGRADOURO'], 3) // CÓDIGO LOGRADOURO
   linha += padText(linhaExcel['BAIRRO DO PACIENTE'], 30) // BAIRRO
   linha += padNum(linhaExcel['DDD DO TELEFONE DE CONTATO'], 2) // DDD
