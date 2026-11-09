@@ -223,6 +223,12 @@ const SECOES = [
         descricao: 'Posições finais da Linha 14 (513 a 537): CPF do Indivíduo (11 chars), Identificação Nacional de Equipe (10 chars, apenas números ou espaços), Pessoa em Situação de Rua (1 char), Fonte Orçamentária (2 chars, números ou espaços), Emendas Parlamentares (1 char) e Paciente Sem CPF (posição 537, 1 char, lido de "PACIENTE SEM CPF" ou "PESSOA SEM CPF"). Finalizado com CR+LF.',
         tipo: 'info',
       },
+      {
+        id: 'R34',
+        titulo: 'Código da Etnia (Linha 14)',
+        descricao: 'No campo "CÓDIGO DA ETNIA", quando o valor informado possuir 3 dígitos (ou menos de 4), é adicionado um zero "0" à esquerda para completar o tamanho de 4 dígitos exigido no arquivo. Quando o campo estiver vazio ou em branco na planilha, é preenchido com 4 espaços.',
+        tipo: 'info',
+      },
     ],
   },
 ]
