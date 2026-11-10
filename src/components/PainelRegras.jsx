@@ -173,6 +173,18 @@ const SECOES = [
         descricao: 'Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO da planilha. CBO: 225270.',
         tipo: 'destaque',
       },
+      {
+        id: 'R24',
+        titulo: 'Saúde da Mulher – Ginecologia (GIN2) - Sangramento Uterino Anormal II (0906010047)',
+        descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Gera fixo 0301010072 (qtde 1) e secundários: 0201010160, 0203020081. Procedimentos compatíveis lidos da coluna PROCEDIMENTO_COMPATIVEL.',
+        tipo: 'mapa',
+      },
+      {
+        id: 'R25',
+        titulo: 'Síndrome Coronariana Crônica – Progressão da Avaliação Diagnóstica I (0902010042)',
+        descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Gera fixo 0301010072 (qtde 1). Procedimentos compatíveis lidos da coluna PROCEDIMENTO_COMPATIVEL.',
+        tipo: 'mapa',
+      },
     ],
   },
   {
