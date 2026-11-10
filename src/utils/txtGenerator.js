@@ -245,7 +245,7 @@ const MAPA_PROCEDIMENTOS_13 = {
   // Saúde Bucal - Mulheres em Situação de Violência II (fixo alternativo: 0301010048)
   '0907010024': [],
 }
-// Nota: 0901010014 (Câncer de Mama Inicial), 0903010011 (Ortopedia) e 0904010031 (ORL) usam
+// Nota: 0901010014 (Câncer de Mama Inicial), 0903010011 (Ortopedia), 0904010031 (ORL) e 0902010042 (Coronariana Crônica Prog. I) usam
 // PROCEDIMENTO_SECUNDARIO dinâmico — veja PROCS_DINAMICOS abaixo.
 // Nota: 0907010016 e 0907010024 usam procedimento fixo 0301010048 e CBO da coluna CBO_PROC_PRINCIPAL.
 
@@ -353,7 +353,7 @@ export function getProcedimentos13(valorExcel) {
 }
 
 // Procedimentos que leem procs secundários dinamicamente da coluna PROCEDIMENTO_SECUNDARIO
-const PROCS_DINAMICOS = new Set(['0903010011', '0901010014', '0904010031'])
+const PROCS_DINAMICOS = new Set(['0903010011', '0901010014', '0904010031', '0902010042'])
 
 // Versão completa: retorna procs dinâmicos (PROCEDIMENTO_SECUNDARIO) ou estáticos (MAPA)
 export function getProcedimentos13Completo(procPrincipal, linhaExcel) {
