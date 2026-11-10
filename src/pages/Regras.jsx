@@ -105,8 +105,8 @@ const SECOES = [
       },
       {
         id: 'R09',
-        titulo: 'Procedimentos Dinâmicos (Ortopedia e Câncer de Mama Inicial)',
-        descricao: 'Para os procedimentos 0903010011 (Ortopedia) e 0901010014 (Câncer de Mama Inicial), os procedimentos secundários são lidos dinamicamente da coluna "PROCEDIMENTO_SECUNDARIO" da planilha (separados por vírgula).',
+        titulo: 'Procedimentos Dinâmicos (Ortopedia, Câncer de Mama Inicial, ORL e Coronariana Crônica Prog. I)',
+        descricao: 'Para os procedimentos 0903010011 (Ortopedia), 0901010014 (Câncer de Mama Inicial), 0904010031 (ORL) e 0902010042 (Síndrome Coronariana Crônica - Progressão I), os procedimentos secundários são lidos dinamicamente da coluna "PROCEDIMENTO_SECUNDARIO" da planilha (separados por vírgula), com CBO lido de "CBO_PROC_SECUNDARIO".',
         tipo: 'destaque',
       },
     ],
@@ -143,7 +143,7 @@ const SECOES = [
       { id: 'R32', titulo: 'Atenção em Saúde Bucal para Mulheres em Situação de Violência (0907010016)', descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Procedimento fixo suplementar: 0301010048 (CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis de PROCEDIMENTO_COMPATIVEL (CBO de CBO_PROC_COMPATIVEL).', tipo: 'mapa' },
       { id: 'R33', titulo: 'Reabilitação Protética em Saúde Bucal para Mulheres em Situação de Violência (0907010024)', descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Procedimento fixo suplementar: 0301010048 (CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis de PROCEDIMENTO_COMPATIVEL (CBO de CBO_PROC_COMPATIVEL).', tipo: 'mapa' },
       { id: 'R33.1', titulo: 'Saúde da Mulher – Ginecologia (GIN2) - Sangramento Uterino Anormal II (0906010047)', descricao: 'CBO lido da coluna CBO_PROC_PRINCIPAL da planilha. Procedimento fixo suplementar: 0301010072 (qtde 1, CBO de CBO_PROC_PRINCIPAL). Procedimentos secundários: 0201010160, 0203020081 (CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis lidos de PROCEDIMENTO_COMPATIVEL (ex: 0417010060, 0804020027).', tipo: 'mapa' },
-      { id: 'R33.2', titulo: 'Síndrome Coronariana Crônica – Progressão da Avaliação Diagnóstica I (0902010042)', descricao: 'CBO lido da coluna CBO_PROC_PRINCIPAL da planilha. Procedimento fixo suplementar: 0301010072 (qtde 1, CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis lidos de PROCEDIMENTO_COMPATIVEL.', tipo: 'mapa' },
+      { id: 'R33.2', titulo: 'Síndrome Coronariana Crônica – Progressão da Avaliação Diagnóstica I (0902010042) — Dinâmico', descricao: 'Procedimentos secundários lidos dinamicamente da coluna PROCEDIMENTO_SECUNDARIO da planilha, com CBO lido da coluna CBO_PROC_SECUNDARIO (fallback para CBO_PROC_PRINCIPAL). Procedimento fixo suplementar: 0301010072 (qtde 1, CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis lidos de PROCEDIMENTO_COMPATIVEL.', tipo: 'destaque' },
     ],
   },
   {
