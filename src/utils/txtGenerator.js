@@ -228,6 +228,10 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0906010012': ['0205020186'],
   // Saúde da Mulher (Ginecologia) II
   '0906010020': ['0205020160'],
+  // Saúde da Mulher (Ginecologia) - Sangramento Uterino Anormal II (GIN2)
+  '0906010047': ['0201010160', '0203020081'],
+  // Síndrome Coronariana Crônica - Progressão da Avaliação Diagnóstica I
+  '0902010042': [],
   // Neuro Oftalmologia
   '0905010060': ['0211060020', '0211060038', '0211060127', '0211060178', '0211060224', '0211060259'],
   // Oncologia Oftalmológica
@@ -267,6 +271,8 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0901010073': '225165', // OCI Avaliação Diagnóstica de Câncer Gástrico
   '0906010012': '225250', // OCI Avaliação Diagnóstica Inicial de Saúde da Mulher (Ginecologia) I
   '0906010020': '225250', // OCI Avaliação Diagnóstica Inicial de Saúde da Mulher (Ginecologia) II
+  '0906010047': '225250', // OCI Progressão da Avaliação Diagnóstica de Saúde da Mulher (Ginecologia) - Sangramento Uterino Anormal II (GIN2)
+  '0902010042': '225120', // OCI Progressão da Avaliação Diagnóstica I - Síndrome Coronariana Crônica
   '0905010060': '225265', // OCI Avaliação Diagnóstica em Neuro Oftalmologia
   '0905010051': '225265', // OCI Avaliação Inicial para Oncologia Oftalmológica
   '0902010077': '225120', // OCI Gestão do Pré-Operatório
