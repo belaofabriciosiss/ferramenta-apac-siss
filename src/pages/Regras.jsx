@@ -105,8 +105,8 @@ const SECOES = [
       },
       {
         id: 'R09',
-        titulo: 'Procedimentos Dinâmicos (Ortopedia, Câncer de Mama Inicial, ORL e Coronariana Crônica Prog. I)',
-        descricao: 'Para os procedimentos 0903010011 (Ortopedia), 0901010014 (Câncer de Mama Inicial), 0904010031 (ORL) e 0902010042 (Síndrome Coronariana Crônica - Progressão I), os procedimentos secundários são lidos dinamicamente da coluna "PROCEDIMENTO_SECUNDARIO" da planilha (separados por vírgula), com CBO lido de "CBO_PROC_SECUNDARIO".',
+        titulo: 'Procedimentos Dinâmicos (Ortopedia, Câncer de Mama Inicial, ORL, Coronariana Crônica Prog. I, Ortopedia Rad./Tomo., Câncer Colorretal e GIN2 Sangramento I)',
+        descricao: 'Para os procedimentos 0903010011 (Ortopedia), 0901010014 (Câncer de Mama Inicial), 0904010031 (ORL), 0902010042 (Síndrome Coronariana Crônica - Progressão I), 0903010038 (Ortopedia Rad./Tomo.), 0901010081 (Câncer Colorretal) e 0906010039 (GIN2 Sangramento I), os procedimentos secundários são lidos dinamicamente da coluna "PROCEDIMENTO_SECUNDARIO" da planilha (separados por vírgula).',
         tipo: 'destaque',
       },
     ],
@@ -144,6 +144,9 @@ const SECOES = [
       { id: 'R33', titulo: 'Reabilitação Protética em Saúde Bucal para Mulheres em Situação de Violência (0907010024)', descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Procedimento fixo suplementar: 0301010048 (CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis de PROCEDIMENTO_COMPATIVEL (CBO de CBO_PROC_COMPATIVEL).', tipo: 'mapa' },
       { id: 'R33.1', titulo: 'Saúde da Mulher – Ginecologia (GIN2) - Sangramento Uterino Anormal II (0906010047)', descricao: 'CBO lido da coluna CBO_PROC_PRINCIPAL da planilha. Procedimento fixo suplementar: 0301010072 (qtde 1, CBO de CBO_PROC_PRINCIPAL). Procedimentos secundários: 0201010160, 0203020081 (CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis lidos de PROCEDIMENTO_COMPATIVEL (ex: 0417010060, 0804020027).', tipo: 'mapa' },
       { id: 'R33.2', titulo: 'Síndrome Coronariana Crônica – Progressão da Avaliação Diagnóstica I (0902010042) — Dinâmico', descricao: 'Procedimentos secundários lidos dinamicamente da coluna PROCEDIMENTO_SECUNDARIO da planilha, com CBO lido da coluna CBO_PROC_SECUNDARIO (fallback para CBO_PROC_PRINCIPAL). Procedimento fixo suplementar: 0301010072 (qtde 1, CBO de CBO_PROC_PRINCIPAL). Procedimentos compatíveis lidos de PROCEDIMENTO_COMPATIVEL.', tipo: 'destaque' },
+      { id: 'R33.3', titulo: 'Ortopedia com Recursos de Radiologia e Tomografia Computadorizada (0903010038) — Dinâmico', descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Procedimento fixo suplementar: 0301010072 (qtde 1, CBO de CBO_PROC_PRINCIPAL). Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO com CBO de CBO_PROC_COMPATIVEL. Procedimentos compatíveis lidos de PROCEDIMENTO_COMPATIVEL com CBO de CBO_PROC_COMPATIVEL.', tipo: 'destaque' },
+      { id: 'R33.4', titulo: 'Avaliação Diagnóstica de Câncer Colorretal (0901010081) — Dinâmico', descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Procedimento fixo suplementar: 0301010072 (qtde 1, CBO de CBO_PROC_PRINCIPAL). Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO com CBO de CBO_PROC_COMPATIVEL. Procedimentos compatíveis lidos de PROCEDIMENTO_COMPATIVEL com CBO de CBO_PROC_COMPATIVEL.', tipo: 'destaque' },
+      { id: 'R33.5', titulo: 'Saúde da Mulher – Ginecologia (GIN2) - Sangramento Uterino Anormal I (0906010039) — Dinâmico', descricao: 'CBO lido de CBO_PROC_PRINCIPAL. Procedimento fixo suplementar: 0301010072 (qtde 1, CBO de CBO_PROC_PRINCIPAL). Procedimentos secundários lidos da coluna PROCEDIMENTO_SECUNDARIO com CBO de CBO_PROC_COMPATIVEL. Procedimentos compatíveis lidos de PROCEDIMENTO_COMPATIVEL com CBO de CBO_PROC_COMPATIVEL.', tipo: 'destaque' },
     ],
   },
   {
