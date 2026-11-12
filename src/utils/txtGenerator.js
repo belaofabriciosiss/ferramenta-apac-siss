@@ -232,6 +232,12 @@ const MAPA_PROCEDIMENTOS_13 = {
   '0906010047': ['0201010160', '0203020081'],
   // Síndrome Coronariana Crônica - Progressão da Avaliação Diagnóstica I
   '0902010042': [],
+  // Ortopedia com Recursos de Radiologia e Tomografia Computadorizada (dinâmico via PROCEDIMENTO_SECUNDARIO)
+  '0903010038': [],
+  // Avaliação Diagnóstica de Câncer Colorretal (dinâmico via PROCEDIMENTO_SECUNDARIO)
+  '0901010081': [],
+  // Saúde da Mulher (Ginecologia) - Sangramento Uterino Anormal I - GIN2 (dinâmico via PROCEDIMENTO_SECUNDARIO)
+  '0906010039': [],
   // Neuro Oftalmologia
   '0905010060': ['0211060020', '0211060038', '0211060127', '0211060178', '0211060224', '0211060259'],
   // Oncologia Oftalmológica
@@ -273,6 +279,9 @@ const MAPA_CBO_PROCEDIMENTO = {
   '0906010020': '225250', // OCI Avaliação Diagnóstica Inicial de Saúde da Mulher (Ginecologia) II
   '0906010047': '225250', // OCI Progressão da Avaliação Diagnóstica de Saúde da Mulher (Ginecologia) - Sangramento Uterino Anormal II (GIN2)
   '0902010042': '225120', // OCI Progressão da Avaliação Diagnóstica I - Síndrome Coronariana Crônica
+  '0903010038': '225270', // OCI Avaliação Diagnóstica em Ortopedia com Recursos de Radiologia e Tomografia Computadorizada
+  '0901010081': '225165', // OCI Avaliação Diagnóstica de Câncer Colorretal
+  '0906010039': '225250', // OCI - GIN2 - Progressão da Avaliação Diagnóstica de Saúde da Mulher (Ginecologia) - Sangramento Uterino Anormal I
   '0905010060': '225265', // OCI Avaliação Diagnóstica em Neuro Oftalmologia
   '0905010051': '225265', // OCI Avaliação Inicial para Oncologia Oftalmológica
   '0902010077': '225120', // OCI Gestão do Pré-Operatório
@@ -353,7 +362,22 @@ export function getProcedimentos13(valorExcel) {
 }
 
 // Procedimentos que leem procs secundários dinamicamente da coluna PROCEDIMENTO_SECUNDARIO
-const PROCS_DINAMICOS = new Set(['0903010011', '0901010014', '0904010031', '0902010042'])
+const PROCS_DINAMICOS = new Set([
+  '0903010011',
+  '0901010014',
+  '0904010031',
+  '0902010042',
+  '0903010038',
+  '0901010081',
+  '0906010039',
+])
+
+// Procedimentos cujos procedimentos secundários devem utilizar o CBO da coluna CBO_PROC_COMPATIVEL
+const PROCS_SEC_USAM_CBO_COMPATIVEL = new Set([
+  '0903010038',
+  '0901010081',
+  '0906010039',
+])
 
 // Versão completa: retorna procs dinâmicos (PROCEDIMENTO_SECUNDARIO) ou estáticos (MAPA)
 export function getProcedimentos13Completo(procPrincipal, linhaExcel) {
@@ -423,20 +447,25 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
   }
 
   // 3. Linhas com cada procedimento mapeado/dinâmico
-  // CBO_PROC_SECUNDARIO é lido para TODOS os procedimentos (dinâmicos e estáticos).
+  // CBO_PROC_SECUNDARIO é lido para procedimentos dinâmicos e estáticos.
+  // Para 0903010038, 0901010081 e 0906010039, o CBO dos secundários é lido de CBO_PROC_COMPATIVEL.
   // Se a coluna estiver vazia, o CBO padrão do OCI é usado como fallback.
-  const cboSecundarios = parseCBOs(String(linhaExcel['CBO_PROC_SECUNDARIO'] || ''))
+  const cboCompativeis = parseCBOs(String(linhaExcel['CBO_PROC_COMPATIVEL'] || ''))
+  const cboSecundariosRaw = parseCBOs(String(linhaExcel['CBO_PROC_SECUNDARIO'] || ''))
+  const cboSecundarios = PROCS_SEC_USAM_CBO_COMPATIVEL.has(procPrincipal)
+    ? (cboCompativeis.length > 0 ? cboCompativeis : cboSecundariosRaw)
+    : cboSecundariosRaw
+
   for (let i = 0; i < procsMapeados.length; i++) {
-    const cboProc = cboSecundarios[i] || cbo // fallback ao CBO padrão do OCI
+    const cboProc = cboSecundarios[i] || cboSecundarios[0] || cbo // fallback ao CBO padrão do OCI
     linhas.push(gerarUmaLinha13(procsMapeados[i], 1, cboProc, numeroApac, cabecalho))
   }
 
   // 4. Linhas com procedimentos compatíveis (PROCEDIMENTO_COMPATIVEL)
   // Cada proc usa o CBO correspondente de CBO_PROC_COMPATIVEL
   const procsCompativeis = parseProcedimentosSecundarios(String(linhaExcel['PROCEDIMENTO_COMPATIVEL'] || ''))
-  const cboCompativeis = parseCBOs(String(linhaExcel['CBO_PROC_COMPATIVEL'] || ''))
   for (let i = 0; i < procsCompativeis.length; i++) {
-    const cboProc = cboCompativeis[i] || cbo // fallback ao CBO padrão do OCI
+    const cboProc = cboCompativeis[i] || cboCompativeis[0] || cbo // fallback ao CBO padrão do OCI
     linhas.push(gerarUmaLinha13(procsCompativeis[i], 1, cboProc, numeroApac, cabecalho))
   }
 
