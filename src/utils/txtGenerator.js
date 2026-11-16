@@ -443,7 +443,8 @@ export function gerarLinhas13(linhaExcel, numeroApac, cabecalho, qty0301 = 1) {
   // 2. Linha fixa suplementar (0301010072 ou específico como 0301010048) — omitida para procedimentos APAC sem o código fixo
   if (deveIncluirFixo0301(procPrincipal)) {
     const procFixo = getProcFixo(procPrincipal)
-    linhas.push(gerarUmaLinha13(procFixo, qty0301, cbo, numeroApac, cabecalho))
+    const qtyFixoFinal = (procFixo === '0301010072') ? 1 : qty0301
+    linhas.push(gerarUmaLinha13(procFixo, qtyFixoFinal, cbo, numeroApac, cabecalho))
   }
 
   // 3. Linhas com cada procedimento mapeado/dinâmico
