@@ -338,23 +338,15 @@ export default function GerarAPAC() {
         const rawQtyPrincipal = String(linhaExcel['PROCEDIMENTO_PRINCIPAL_QUANTIDADE'] || '').replace(/\D/g, '')
         const qtyPrincipal = rawQtyPrincipal ? Math.max(1, parseInt(rawQtyPrincipal, 10)) : 1
 
-        // Procedimento fixo suplementar (0301010072 ou específico como 0301010048)
-        const temFixo0301 = deveIncluirFixo0301(proc14Norm)
-        const procFixo = temFixo0301 ? getProcFixo(proc14Norm) : null
-
-        // Quantidade do proc fixo suplementar:
-        // Para 0301010072: sempre fixa em 1
-        // Para outros fixos (ex: 0301010048 Saúde Bucal): lida de QUANTIDADE_CONSULTA ou padrão 1
-        const rawQtyConsulta = String(linhaExcel['QUANTIDADE_CONSULTA'] || '').replace(/\D/g, '')
-        const qty0301 = (procFixo === '0301010072')
-          ? 1
-          : (rawQtyConsulta ? Math.max(1, parseInt(rawQtyConsulta, 10)) : 1)
+        // Quantidade do proc fixo suplementar (0301010072/0301010048): lida da planilha ou padrão 1
+        const qty0301 = Math.max(1, parseInt(String(linhaExcel['QUANTIDADE_CONSULTA'] || '').replace(/\D/g, '')) || 1)
 
         // Regra: Σ(código tipo 13) + Σ(quantidade tipo 13) + número APAC
         // Linha 13 - proc principal: código + qty real
         somaControle += BigInt(proc14Norm) + BigInt(qtyPrincipal)
         // Linha 13 - proc fixo suplementar: código + qty real (omitido para APAC sem o fixo)
-        if (temFixo0301 && procFixo) {
+        if (deveIncluirFixo0301(proc14Norm)) {
+          const procFixo = getProcFixo(proc14Norm)
           somaControle += BigInt(procFixo) + BigInt(qty0301)
         }
         // Linhas 13 - procs mapeados/dinâmicos: código + qty 1 cada
