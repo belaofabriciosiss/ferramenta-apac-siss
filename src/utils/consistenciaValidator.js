@@ -90,6 +90,17 @@ function validarCid(row) {
   return null
 }
 
+function validarCnsMedicoExecutante(row) {
+  const raw = row['CNS MÉDICO EXECUTANTE DO PROCEDIMENTO'] !== undefined
+    ? row['CNS MÉDICO EXECUTANTE DO PROCEDIMENTO']
+    : row['CNS MEDICO EXECUTANTE DO PROCEDIMENTO']
+  const cns = String(raw || '').trim().replace(/\D/g, '')
+  if (!cns || !cns.startsWith('7')) {
+    return 'CNS do médico executante não inicia com 7'
+  }
+  return null
+}
+
 const REGRAS = [
   { fn: validarEmail },
   { fn: validarProfissionaisDistintos },
@@ -97,6 +108,7 @@ const REGRAS = [
   { fn: validarLogradouro },
   { fn: validarPacienteSemCpf },
   { fn: validarCid },
+  { fn: validarCnsMedicoExecutante },
 ]
 
 // ─── Runner ───────────────────────────────────────────────────────────────────
