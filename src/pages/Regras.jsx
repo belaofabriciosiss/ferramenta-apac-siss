@@ -46,6 +46,12 @@ const SECOES = [
         descricao: 'O campo "CID CAUSAS ASSOCIADAS" não pode estar vazio nem conter o valor "NULL". Quando ausente ou inválido, é apontado como "Atendimento sem CID válido".',
         tipo: 'alerta',
       },
+      {
+        id: 'R03.4',
+        titulo: 'CNS do Médico Executante',
+        descricao: 'O campo "CNS MÉDICO EXECUTANTE DO PROCEDIMENTO" deve iniciar com o dígito 7. Caso o primeiro número seja diferente de 7 (ou esteja vazio), o atendimento é apontado no relatório como "CNS do médico executante não inicia com 7".',
+        tipo: 'alerta',
+      },
     ],
   },
   {
